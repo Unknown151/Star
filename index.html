@@ -1153,8 +1153,11 @@ input[type=number]{width:96px}
 #listName:hover,#listName:focus{border-color:var(--line2);background:var(--field)}
 
 /* budget bar */
-.budget{position:sticky;top:0;z-index:30;background:linear-gradient(180deg,rgba(5,12,26,.97),rgba(3,8,18,.95));border-top:1px solid var(--line);border-bottom:1px solid var(--line2);box-shadow:0 1px 0 rgba(var(--accent-rgb),.12),0 8px 22px rgba(0,0,0,.5);backdrop-filter:blur(6px)}
-:root[data-theme="light"] .budget{background:rgba(255,255,255,.96);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+/* title bar, budget bar and tabs stay pinned together */
+.top{position:sticky;top:0;z-index:30;background:linear-gradient(180deg,rgba(4,9,20,.97),rgba(3,7,16,.96));box-shadow:0 1px 0 rgba(var(--accent-rgb),.14),0 8px 22px rgba(0,0,0,.55);backdrop-filter:blur(6px)}
+:root[data-theme="light"] .top{background:rgba(244,246,249,.97);box-shadow:0 4px 14px rgba(0,0,0,.08)}
+.budget{background:linear-gradient(180deg,rgba(5,12,26,.97),rgba(3,8,18,.95));border-top:1px solid var(--line);border-bottom:1px solid var(--line2)}
+:root[data-theme="light"] .budget{background:#fff}
 .budget .in{max-width:820px;margin:0 auto;padding:7px 12px;display:grid;grid-template-columns:1fr 1fr auto;gap:6px}
 .meter{position:relative;background:var(--field);border:1px solid var(--line2);border-radius:2px;padding:3px 9px 5px;overflow:hidden;display:flex;justify-content:space-between;align-items:center;gap:6px;min-width:0;box-shadow:inset 0 0 12px rgba(0,0,0,.6)}
 .meter .fill{position:absolute;left:0;bottom:0;height:2px;background:linear-gradient(90deg,var(--accent),rgb(var(--accent2-rgb)));box-shadow:0 0 6px var(--glow);transition:width .2s}
@@ -1181,7 +1184,7 @@ input[type=number]{width:96px}
 .resn b{color:var(--hi);text-shadow:var(--tglow)}
 
 /* tab bar */
-.tabbar{background:linear-gradient(180deg,rgba(10,22,44,.88),rgba(4,10,22,.88));border-bottom:1px solid var(--line2);box-shadow:0 1px 0 rgba(var(--accent-rgb),.1)}
+.tabbar{background:linear-gradient(180deg,rgba(10,22,44,.92),rgba(4,10,22,.95));border-bottom:1px solid var(--line2)}
 :root[data-theme="light"] .tabbar{background:transparent}
 .tabs{max-width:820px;margin:0 auto;padding:0 6px;display:flex;overflow-x:auto;scrollbar-width:none}
 .tabs button{background:none;border:none;padding:12px 14px 11px;color:color-mix(in srgb,var(--head) 70%,var(--muted));font-weight:600;white-space:nowrap;text-transform:uppercase;letter-spacing:.07em;font-stretch:122%;font-size:13.5px}
@@ -1314,6 +1317,13 @@ footer p{margin:4px 0}
 /* card-style datasheet */
 .dcard{padding:12px 14px}
 .dcard.embedded{margin-top:10px;padding:10px 0 0;border-top:1px solid var(--line)}
+.dcard.card{padding-left:17px}
+.dcard.card::after{content:"";position:absolute;left:1px;top:calc(var(--b) + 1px);bottom:calc(var(--b) + 1px);width:3px;background:var(--c);box-shadow:0 0 8px var(--c)}
+.dcard.closed{margin-bottom:8px;padding-top:10px;padding-bottom:10px}
+.dcard.closed .dc-head{margin-bottom:0}
+.dc-head.tog{cursor:pointer;user-select:none;align-items:center}
+.dc-head .tw{color:var(--head);font-size:11px;transition:transform .15s}
+.dcard.open .dc-head .tw{transform:rotate(180deg)}
 .dc-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
 .dc-name{flex:1;min-width:0}
 .dc-name h3{margin:0;font-size:19px;line-height:1.2;text-transform:uppercase;letter-spacing:.05em;font-stretch:118%;color:var(--hi);text-shadow:var(--tglow);font-weight:700}
@@ -1351,6 +1361,7 @@ footer p{margin:4px 0}
 .pill.x{background:transparent;border:1px solid var(--line2);color:var(--muted);font-weight:700}
 .pill.upg{background:transparent;border:1px solid var(--head);color:var(--head)}
 .dc-foot{margin-top:10px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.dcard,#problems{scroll-margin-top:calc(var(--toph,170px) + 8px)}
 .secthead{margin:22px 2px 10px;font-size:13px;text-transform:uppercase;letter-spacing:.11em;font-stretch:125%;color:var(--head);display:flex;align-items:baseline}
 .secthead .r{margin-left:auto;font-size:12px;letter-spacing:.03em;color:var(--muted);text-transform:none;font-stretch:100%}
 :root[data-theme="light"] :is(.ms.cur b,.dc-ph>h4){color:#fff}
@@ -1371,6 +1382,9 @@ footer p{margin:4px 0}
   body{font-size:14.5px}
   .card,.unit{--b:7px}
   .brand{font-size:15px}
+  .appbar{padding:7px 10px 6px}
+  #listName{font-size:15px;padding:4px 6px}
+  .appbar .btn{padding:6px 10px}
   .budget .in{gap:5px;padding:6px 10px}
   .meter{padding:2px 7px 4px}
   .meter .k .kl,.meter .k .ks,.probs .long,.resn .rl{display:none}
@@ -1425,6 +1439,7 @@ footer p{margin:4px 0}
 </style>
 </head>
 <body>
+<div class="top" id="top">
 <header class="appbar">
   <div class="brand">Supply <b>Line</b></div>
   <input id="listName" data-act="rename" aria-label="List name" autocomplete="off" spellcheck="false">
@@ -1438,6 +1453,7 @@ footer p{margin:4px 0}
   <button role="tab" data-act="tab" data-tab="plan">Supply</button>
   <button role="tab" data-act="tab" data-tab="roster">Roster</button>
 </div></nav>
+</div>
 <main id="view"></main>
 <footer>
   <p><b>Unofficial fan tool.</b> Not affiliated with Blizzard Entertainment or Archon Studio. StarCraft is a trademark of Blizzard Entertainment.</p>
@@ -1958,7 +1974,7 @@ const Engine = (() => {
   const fmt = E.fmt;
   const KEY = 'supplyline.v1';
   const SLOT_ORDER = ['hero', 'core', 'elite', 'support', 'air'];
-  const ui = { tab: null, open: new Set(), openCards: new Set(), modal: null, q: '', filter: 'all', peek: null };
+  const ui = { tab: null, armyOpen: null, open: new Set(), openCards: new Set(), modal: null, q: '', filter: 'all', peek: null };
 
   // ── storage ──
   function load() {
@@ -2140,13 +2156,16 @@ const Engine = (() => {
     const tiles = (s.sh != null ? tile('sh', 'Shield', s.sh) : '') + tile('spd', 'Speed', s.spd) + tile('arm', 'Armour', s.arm)
       + tile('eva', 'Evade', s.eva) + tile('hp', 'Hit points', s.hp) + tile('size', 'Size', s.size);
     const sub = d.summoned ? `Summoned by ${esc(d.by)} · free, no slot`
-      : `${E.SLOT_NAME[d.slot]} · ${esc(d.role)} · Ø${esc(d.base.replace(/mm$/, ' mm'))}${d.unique ? ' · <span class="tag uq">Unique</span>' : ''}`;
-    const head = opts.embedded ? '' : `<header class="dc-head"><div class="dc-name"><h3>${esc(x.label)}</h3><div class="dc-sub">${sub}</div></div>
-      ${d.summoned ? '' : `<span class="cost"><i class="ico ico-min" aria-hidden="true"></i>${fmt(x.cost)}</span>`}</header>`;
+      : `${E.SLOT_NAME[d.slot]} · ${x.supply} Supply · ${esc(d.role)} · Ø${esc(d.base.replace(/mm$/, ' mm'))}${d.unique ? ' · <span class="tag uq">Unique</span>' : ''}`;
+    const tog = opts.key != null;   // collapsible (Army tab)
+    const head = opts.embedded ? '' : `<header class="dc-head${tog ? ' tog' : ''}"${tog ? ` data-act="army-toggle" data-key="${esc(opts.key)}" role="button" tabindex="0" aria-expanded="${!!opts.open}"` : ''}>
+      <div class="dc-name"><h3>${esc(x.label)}</h3><div class="dc-sub">${sub}</div></div>
+      ${d.summoned ? '' : `<span class="cost"><i class="ico ico-min" aria-hidden="true"></i>${fmt(x.cost)}</span>`}${tog ? '<span class="tw">▼</span>' : ''}</header>`;
+    if (tog && !opts.open) return `<article class="dcard card closed" data-key="${esc(opts.key)}" style="${slotVar(d.slot || 'core')}">${head}</article>`;
     const ups = x.ups.length ? `<div><b>Upgrades:</b> ${esc(x.ups.map(u => u.n).join(', '))}</div>` : '';
     const load = d.summoned ? '' : E.loadoutText(E.loadout(x)).map(l => `<div>${esc(l).replace(/^([^:]+):/, '<b>$1:</b>')}</div>`).join('');
     const pool = x.poolSupply !== x.supply ? `<div class="mod">Counts 0 Supply for the Supply Pool (Advanced Medic Facilities).</div>` : '';
-    return `<article class="dcard${opts.embedded ? ' embedded' : ' card'}" style="${slotVar(d.slot || 'core')}">${head}
+    return `<article class="dcard${opts.embedded ? ' embedded' : ' card'}${tog ? ' open' : ''}"${tog ? ` data-key="${esc(opts.key)}"` : ''} style="${slotVar(d.slot || 'core')}">${head}
       ${opts.embedded ? `<div class="dc-sub" style="margin-bottom:8px">${sub}</div>` : ''}
       <div class="dc-top"><div class="dc-stats">${tiles}</div>${supplyBoxes(x)}</div>
       ${ups || load || pool ? `<div class="dc-load">${ups}${load}${pool}</div>` : ''}
@@ -2185,16 +2204,18 @@ const Engine = (() => {
     </section>`;
   }
 
-  // ── army tab: every unit in the list as a card ──
+  // ── army tab: every unit as a card, A–Z, one open at a time ──
   function renderArmy(l, ev) {
-    const xs = SLOT_ORDER.flatMap(t => ev.entries.filter(x => x.def && x.def.slot === t));
+    const xs = ev.entries.filter(x => x.def).sort((a, b) => a.label.localeCompare(b.label, 'en', { numeric: true }));
     if (!xs.length) return `<div class="card empty">No units yet.<br><br><button class="btn primary" data-act="tab" data-tab="build">Build your list</button></div>`;
     const summonIds = new Set();
     if (ev.fac) (ev.fac.summons || []).forEach(id => summonIds.add(id));
     xs.forEach(x => (x.def.summons || []).forEach(id => summonIds.add(id)));
-    return xs.map(x => dcard(x)).join('')
-      + (summonIds.size ? `<h3 class="secthead">Summoned during play <span class="r">free · no slot</span></h3>
-        ${[...summonIds].map(id => E.units[id] ? dcard(summonedEntry(E.units[id])) : '').join('')}` : '');
+    const card = (x, key) => dcard(x, { key, open: ui.armyOpen === key });
+    const summoned = [...summonIds].map(id => E.units[id]).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
+    return xs.map(x => card(x, x.e.uid)).join('')
+      + (summoned.length ? `<h3 class="secthead">Summoned during play <span class="r">free · no slot</span></h3>
+        ${summoned.map(d => card(summonedEntry(d), 'sum:' + d.id)).join('')}` : '');
   }
   const summonedEntry = d => E.entry({ uid: 'peek', id: d.id, n: d.sizes[0][0], up: [] });
 
@@ -2437,6 +2458,13 @@ const Engine = (() => {
     },
     scale: t => commit(l => { l.scale = t.dataset.scale; }),
     toggle: t => { const id = t.dataset.uid; ui.open.has(id) ? ui.open.delete(id) : ui.open.add(id); render(); },
+    'army-toggle': t => {
+      const k = t.dataset.key;
+      ui.armyOpen = ui.armyOpen === k ? null : k;
+      render();
+      const el = ui.armyOpen && [...document.querySelectorAll('.dcard[data-key]')].find(c => c.dataset.key === k);
+      if (el) el.scrollIntoView({ block: 'start' });
+    },
     size: t => commit(() => { findEntry(t.dataset.uid).n = Number(t.dataset.n); }),
     up: t => commit(() => E.toggleUpgrade(findEntry(t.dataset.uid), t.dataset.up)),
     dup: t => commit(l => { const e = findEntry(t.dataset.uid); const c = { ...e, uid: E.uid(), up: [...e.up] }; l.units.splice(l.units.indexOf(e) + 1, 0, c); }),
@@ -2506,12 +2534,16 @@ const Engine = (() => {
   });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && ui.modal) { ui.modal = null; render(); }
-    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('header[data-act="toggle"]')) { e.preventDefault(); A.toggle(e.target); }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('header[data-act="toggle"],header[data-act="army-toggle"]')) { e.preventDefault(); A[e.target.dataset.act](e.target); }
     if (e.key === 'Enter' && e.target.id === 'listName') e.target.blur();
   });
   window.addEventListener('storage', e => { if (e.key === KEY) { store = load(); render(); } });
 
   // ── boot ──
+  const topEl = $('#top');
+  const syncTop = () => document.documentElement.style.setProperty('--toph', topEl.offsetHeight + 'px');
+  if (window.ResizeObserver) new ResizeObserver(syncTop).observe(topEl); else window.addEventListener('resize', syncTop);
+  syncTop();
   ui.tab = ['army', 'build', 'play', 'plan', 'roster'].includes(store.tab) ? store.tab : (cur().units.length ? 'army' : 'build');
   $('#dataver').textContent = `Data: ${GAME.version}. Supply Line is free, has no ads, and keeps your lists in this browser.`;
   applyTheme();
@@ -2522,6 +2554,7 @@ const Engine = (() => {
     history.replaceState(null, '', location.pathname + location.search);
   }
   render();
+  syncTop();
 })();
 </script>
 </body>
