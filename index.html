@@ -1321,10 +1321,12 @@ footer p{margin:4px 0}
 .dc-head .cost{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:18px;color:var(--hi);text-shadow:var(--tglow)}
 .dc-top{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;justify-content:space-between}
 .dc-stats{display:flex;gap:5px;flex-wrap:wrap}
-.st{width:56px;padding:5px 0 4px;text-align:center;border:1px solid rgba(var(--accent-rgb),.6);border-radius:3px;background:linear-gradient(180deg,rgba(var(--accent-rgb),.3),rgba(var(--accent-rgb),.06));box-shadow:inset 0 0 10px rgba(var(--accent-rgb),.22)}
+.st{min-width:56px;padding:5px 5px 4px;text-align:center;border:1px solid rgba(var(--accent-rgb),.6);border-radius:3px;background:linear-gradient(180deg,rgba(var(--accent-rgb),.3),rgba(var(--accent-rgb),.06));box-shadow:inset 0 0 10px rgba(var(--accent-rgb),.22)}
 .st b{display:block;font-size:23px;line-height:1.05;font-weight:700;color:var(--hi);text-shadow:var(--tglow)}
 .st span{display:block;margin-top:2px;font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--head);white-space:nowrap}
 .st.mod{border-color:var(--mod)} .st.mod b{color:var(--mod)}
+.st.long b{font-size:18px;line-height:1.35}
+.st b small{display:block;font-size:9px;line-height:1.2;font-weight:600;color:var(--muted);text-shadow:none;white-space:nowrap}
 .msup{text-align:center}
 .msrow{display:flex;gap:4px}
 .ms{min-width:42px;border:1px solid var(--line2);border-radius:3px;overflow:hidden;background:var(--field)}
@@ -1381,7 +1383,7 @@ footer p{margin:4px 0}
   .stats th{font-size:9.5px;letter-spacing:.02em;font-stretch:100%}
   .stats td{font-size:15px}
   .dcard,.pcard{padding:11px 10px}
-  .st{width:44px} .st b{font-size:18px} .st span{font-size:7px;letter-spacing:0}
+  .st{min-width:44px;padding:5px 3px 4px} .st b{font-size:18px} .st.long b{font-size:14px;line-height:1.3} .st span{font-size:7px;letter-spacing:0}
   .ms{min-width:36px} .ms span{font-size:13px}
   .dc-name h3{font-size:16.5px}
   .dc-ph{padding:15px 8px 5px}
@@ -2128,7 +2130,13 @@ const Engine = (() => {
   }
   function dcard(x, opts = {}) {
     const d = x.def, eff = E.effective(x), s = eff.stats;
-    const tile = (k, label, v) => `<div class="st${eff.mod[k] ? ' mod' : ''}"${eff.mod[k] ? ` title="${esc(eff.mod[k])}"` : ''}><b>${esc(v)}</b><span>${label}</span></div>`;
+    // Tiles drop the inch marks (as the cards do); "2 (3 sieged)" shows the bracket as a small second line.
+    const tile = (k, label, v) => {
+      let main = String(v).replace(/″/g, ''), sub = '';
+      const m = main.match(/^(.*?)\s*\((.+)\)$/);
+      if (m) { main = m[1]; sub = m[2]; }
+      return `<div class="st${eff.mod[k] ? ' mod' : ''}${main.length > 3 ? ' long' : ''}" title="${esc(label)}: ${esc(v)}${eff.mod[k] ? ` · ${esc(eff.mod[k])}` : ''}"><b>${esc(main)}${sub ? `<small>${esc(sub)}</small>` : ''}</b><span>${label}</span></div>`;
+    };
     const tiles = (s.sh != null ? tile('sh', 'Shield', s.sh) : '') + tile('spd', 'Speed', s.spd) + tile('arm', 'Armour', s.arm)
       + tile('eva', 'Evade', s.eva) + tile('hp', 'Hit points', s.hp) + tile('size', 'Size', s.size);
     const sub = d.summoned ? `Summoned by ${esc(d.by)} · free, no slot`
