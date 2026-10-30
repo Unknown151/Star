@@ -308,7 +308,7 @@ test('NewRecruit export: Golden Armada', () => {
     'Stalker (180, 1S): Path of Shadows',
     '',
     '2x High Templar (150, 1S): Psionic Storm',
-    '2x Sentries (140, 1S): Solid-Field Projectors',
+    '2x Sentries (140, 1S): Solid-Field Projector',   // NewRecruit's spelling
     '',
     'Artanis (270, 1S)',
     '',
@@ -316,9 +316,9 @@ test('NewRecruit export: Golden Armada', () => {
     'Created with newrecruit.eu v37.7',   // the Tabletop Simulator importer needs this exact line
   ]);
 });
-test('NewRecruit export: duplicate cards and a Creep section', () => {
+test('NewRecruit export: one line per card copy, and a Creep section', () => {
   const t = E.toNewRecruit(list('zerg', 'ks', 'standard', [['zergling', 12]], ['creep-malignant', 'pool', 'pool']));
-  ok(t.includes('# Tactical:\n2x Spawning Pool\n\n# Creep:\nMalignant Creep\n'), t);
+  ok(t.includes('# Tactical:\nSpawning Pool\nSpawning Pool\n\n# Creep:\nMalignant Creep\n'), t);
 });
 test('NewRecruit import: the real newrecruit.eu export of the Golden Armada', () => {
   const pasted = `Protoss - Protoss (2000 Minerals, 200 Gas)
@@ -368,7 +368,7 @@ test('NewRecruit: variants carry their base unit, as on the card title', () => {
   ok(t.includes('\n# Tactical:\n\n# Units:\n6x Kerrigan Swarm Raptors (Zergling) (230, 1S)\n'), t);
   const p = E.toNewRecruit(list('protoss', 'khalai', 'standard', [['praetor', 3], ['zealot', 3]], []));
   ok(p.includes('3x Zealots (170, 2S)\n\n3x Praetor Guard (Zealot) (260, 2S)'), p);
-  ok(E.toNewRecruit(list('terran', 'nco', 'standard', [['nova-stealth', 1]], [])).includes('Nova (Stealth Mode) (240, 1S)'));
+  ok(E.toNewRecruit(list('terran', 'nco', 'standard', [['nova-stealth', 1]], [])).includes('\nNova (240, 1S): Stealth Mode\n'), 'Nova as NewRecruit writes it');
 });
 test('NewRecruit import: the real export of Kerrigan Swarm Raptors', () => {
   const l = E.fromText(`Zerg - Zerg (230 Minerals, 0 Gas)
@@ -392,6 +392,66 @@ Created with newrecruit.eu v37.7`);
   eq(E.evaluate(l).minerals, 230);
   const n = E.fromText('Terran - Terran (240 Minerals, 0 Gas)\n\n# Faction:\nNova Covert Ops\n\n# Units:\nNova (Stealth Mode) (240, 1S)\n');
   eq(n.units.map(u => u.id), ['nova-stealth'], "Nova's own brackets still match");
+});
+// The Tabletop Simulator importer's line rules (StarCraft roster importer v22, convertNewRecruitText),
+// minus its catalogue lookups: section headings, the title/totals lines, no quantity on card lines,
+// "N x Name (cost, NS): options" on unit lines, and Nova written as "Nova: <mode>".
+function ttsCheck(text) {
+  const headings = { faction: 1, factions: 1, tactical: 1, tactics: 1, 'tactical cards': 1, creep: 1, units: 1,
+    'pre-game': 0, 'deployment maps': 0, deployments: 0, deployment: 0, 'mission card': 0, 'mission cards': 0, missions: 0, mission: 0 };
+  const entry = line => {
+    let name = line, details = null;
+    if (line.endsWith(')')) {
+      const at = line.lastIndexOf('(');
+      if (at >= 0) { const suf = line.slice(at + 1, -1).trim(); if (/^[+\d]/.test(suf)) { name = line.slice(0, at).trim(); details = suf; } }
+    }
+    let supply = null, cost = null;
+    if (details) {
+      cost = Number((details.match(/^\+?(\d+)/) || [])[1]);
+      details.split(',').forEach(p => { const v = p.trim().toLowerCase().match(/^(\d+)\s*s$|^(\d+)\s+supply$/); if (v) supply = Number(v[1] || v[2]); });
+    }
+    const cm = name.match(/^(\d+)\s*[xX]\s+(.+)$/);
+    return cm ? { name: cm[2].trim(), count: Number(cm[1]), supply, cost } : { name, count: null, supply, cost };
+  };
+  const problems = [];
+  let section = null, n = 0, sawFooter = false, units = 0;
+  for (const raw of text.split('\n')) {
+    n++;
+    const line = raw.trim(), folded = line.toLowerCase();
+    if (folded.startsWith('created with newrecruit.eu')) { sawFooter = true; break; }
+    if (!line) continue;
+    let heading = folded.replace(/^#+/, '').trim();
+    if (heading.endsWith(':')) heading = heading.slice(0, -1).trim();
+    const colon = folded.indexOf(':'), before = colon >= 0 ? folded.slice(0, colon).trim() : null;
+    if (heading in headings) { section = headings[heading] ? heading.replace(/s$/, '') : 'skip'; continue; }
+    if (before && headings[before] === 0) { section = 'skip'; continue; }
+    if (line.startsWith('#')) { problems.push(`${n}: unsupported section ${line}`); continue; }
+    if (section === 'skip') continue;
+    if (!section) { if (!((folded.includes('minerals') && folded.includes('gas')) || /^\d+\s+supply/.test(folded))) problems.push(`${n}: expected a heading`); continue; }
+    if (section === 'unit') {
+      const split = line.indexOf(':');
+      const head = split >= 0 ? line.slice(0, split) : line, opts = split >= 0 ? line.slice(split + 1).split(',').map(o => o.trim()) : [];
+      const e = entry(head.trim());
+      if (e.supply == null || e.cost == null) problems.push(`${n}: unit without (cost, Supply): ${line}`);
+      if (/^nova/i.test(e.name) && !(e.name === 'Nova' && opts.some(o => /^(stealth|assault) mode$/i.test(o)))) problems.push(`${n}: Nova must be "Nova: <mode>"`);
+      opts.forEach(o => { if (!o || entry(o).count) problems.push(`${n}: bad option "${o}"`); });
+      units++;
+    } else if (entry(line).count) problems.push(`${n}: unsupported card quantity: ${line}`);
+  }
+  if (!sawFooter) problems.push('missing "Created with newrecruit.eu" footer');
+  if (!units) problems.push('no units');
+  return problems;
+}
+E.EXAMPLES.forEach((x, i) => test(`Tabletop Simulator importer accepts: ${x.name}`, () => eq(ttsCheck(E.toNewRecruit(E.example(i))), [])));
+test('Tabletop Simulator importer accepts duplicate cards, Nova and Zerg creep', () => {
+  eq(ttsCheck(E.toNewRecruit(list('terran', 'nco', 'standard', [['nova-assault', 1], ['siegetank', 1, ['Mode Transformation']]], ['factory', 'factory', 'supplydepot']))), []);
+  eq(ttsCheck(E.toNewRecruit(list('zerg', 'ks', 'standard', [['zergling', 12]], ['creep-malignant', 'pool', 'pool']))), []);
+  ok(ttsCheck('X - Terran (1 Minerals, 0 Gas)\n# Tactical:\n2x Factory\n# Units:\nMarine (1, 1S)\nCreated with newrecruit.eu').some(p => /card quantity/.test(p)), 'the check itself catches "2x" cards');
+});
+test('NewRecruit import: Nova written as "Nova: <mode>"', () => {
+  const l = E.fromText('Terran - Terran (500 Minerals, 0 Gas)\n\n# Faction:\nNova Covert Ops\n\n# Tactical:\nSupply Depot\nSupply Depot\n\n# Units:\nNova (260, 1S): Assault Mode\n\n\nCreated with newrecruit.eu v37.7');
+  eq(l.units.map(u => [u.id, u.up]), [['nova-assault', []]]);
+  eq(l.cards, ['supplydepot', 'supplydepot']);
 });
 E.EXAMPLES.forEach((x, i) => test(`NewRecruit round trip: ${x.name}`, () => {
   const a = E.example(i), b = E.fromText(E.toNewRecruit(a));

@@ -22,6 +22,8 @@
                         {stat:'hp', add:1} · {w:'Weapon'|[..], kw:'KEYWORD (X)'} · {w:'Weapon', set:{surge,sd}} · {pool0:1}
      tags:           faction tags — every one must be on the army's Faction Card.
      variantOf:      the unit a variant is printed under, e.g. RAPTOR (ZERGLING) → `Zergling`.
+     nr:             NewRecruit's naming where it differs — on a unit {name, option} (Nova is "Nova" with
+                     a mode option), on an upgrade the name string (e.g. `Solid-Field Projector`).
      ═══════════════════════════════════════════════════════════════════════════ -->
 <script id="game-data">
 const BURROW_AMBUSH = `When it Deploys, may PLACE (18) from your Entry Edge instead (no model within 10″ of enemies); its activation then ends.`;
@@ -462,7 +464,7 @@ const GAME = {
         { n:`C-14 Rifle`, c:0, rep:`Commando Rifle`, w:`C-14 Rifle | 12″ | All | 6 | 3+ | Light | D3+1 | 1 | BURST FIRE 8″ (3)` },
       ] },
 
-    { id:'nova-stealth', race:'terran', name:`Nova (Stealth Mode)`, slot:'hero', role:`Damage Dealer`, base:`40mm`, unique:1, excl:'nova',
+    { id:'nova-stealth', race:'terran', name:`Nova (Stealth Mode)`, nr:{ name:`Nova`, option:`Stealth Mode` }, slot:'hero', role:`Damage Dealer`, base:`40mm`, unique:1, excl:'nova',
       tags:['TERRAN'], ctags:`Biological, Psionic, Ground`,
       stats:{ spd:`7″`, arm:`5+`, eva:`5+`, hp:8, size:2 }, supply:`1 → 1`,
       sizes:[[1,240,1]], summons:['decoy'],
@@ -479,7 +481,7 @@ const GAME = {
         [`Head Shot`, `Assault · Reaction · 1 CP · Once per Game`, `Unengaged and Stationary: one C-20A attack is Damage 3 with CONCENTRATED FIRE (1).`],
       ] },
 
-    { id:'nova-assault', race:'terran', name:`Nova (Assault Mode)`, slot:'hero', role:`Damage Dealer`, base:`40mm`, unique:1, excl:'nova',
+    { id:'nova-assault', race:'terran', name:`Nova (Assault Mode)`, nr:{ name:`Nova`, option:`Assault Mode` }, slot:'hero', role:`Damage Dealer`, base:`40mm`, unique:1, excl:'nova',
       tags:['TERRAN'], ctags:`Biological, Psionic, Ground`,
       stats:{ spd:`7″`, arm:`5+`, eva:`5+`, hp:8, size:2 }, supply:`1 → 1`,
       sizes:[[1,260,1]], summons:['decoy'],
@@ -901,7 +903,7 @@ const GAME = {
         [`Force Field`, `Movement · Active · 1 PE`, `Set a Force Field token within 8″: Size ≤2 units can't cross it; a Size 3+ model crossing it removes it.`],
       ],
       upgrades:[
-        { n:`Solid-Field Projectors`, c:10, t:`Movement · Active · 1 PE`, d:`A second, separately named Force Field ability — so two Force Fields per Round.` },
+        { n:`Solid-Field Projectors`, nr:`Solid-Field Projector`, c:10, t:`Movement · Active · 1 PE`, d:`A second, separately named Force Field ability — so two Force Fields per Round.` },
         { n:`Hallucination`, c:20, t:`Assault · Reaction · 0 PE`, d:`When an enemy declares a ranged attack on a friendly unit within 4″, the target may Evade.` },
       ] },
 
@@ -1853,11 +1855,8 @@ const Engine = (() => {
     L.push(`${list.name || 'Untitled list'} - ${ev.race ? ev.race.name : '?'} (${ev.minerals} Minerals, ${ev.gas} Gas)`);
     L.push(`${xs.reduce((a, x) => a + x.supply, 0)} Supply, 0 CP`, '', 'Deployment Maps', 'Mission Card', '');
     L.push('# Faction:', ev.fac ? ev.fac.name : '', '');
-    const counted = kind => {
-      const cnt = {};
-      ev.cards.filter(c => (c.kind === 'creep') === (kind === 'creep')).forEach(c => { cnt[c.name] = (cnt[c.name] || 0) + 1; });
-      return Object.keys(cnt).sort((a, b) => a.localeCompare(b)).map(n => cnt[n] > 1 ? `${cnt[n]}x ${n}` : n);
-    };
+    // One line per copy: the Tabletop Simulator importer rejects "2x" on card lines.
+    const counted = kind => ev.cards.filter(c => (c.kind === 'creep') === (kind === 'creep')).map(c => c.name).sort((a, b) => a.localeCompare(b));
     const tactical = counted('tactical'), creep = counted('creep');
     L.push('# Tactical:', ...tactical, '');
     if (creep.length) L.push('# Creep:', ...creep, '');
@@ -1869,9 +1868,11 @@ const Engine = (() => {
       if (gi) L.push('');
       g.forEach(x => {
         // NewRecruit names variants after the card title: "6x Kerrigan Swarm Raptors (Zergling)"
-        const base = x.models > 1 ? `${x.models}x ${x.def.plural || x.def.name + 's'}` : x.def.name;
+        const nr = x.def.nr || {};
+        const base = x.models > 1 ? `${x.models}x ${x.def.plural || x.def.name + 's'}` : (nr.name || x.def.name);
         const name = x.def.variantOf ? `${base} (${x.def.variantOf})` : base;
-        L.push(`${name} (${x.cost}, ${x.supply}S)${x.ups.length ? ': ' + x.ups.map(u => u.n).join(', ') : ''}`);
+        const opts = [nr.option, ...x.ups.map(u => u.nr || u.n)].filter(Boolean);   // Nova: "Nova (240, 1S): Stealth Mode"
+        L.push(`${name} (${x.cost}, ${x.supply}S)${opts.length ? ': ' + opts.join(', ') : ''}`);
       });
     });
     // The Tabletop Simulator army importer rejects exports without NewRecruit's own footer line.
@@ -1914,12 +1915,14 @@ const Engine = (() => {
     unitLines.forEach(line => {
       const m = line.match(/^(?:(\d+)\s*x\s+)?(.+?)\s*\(\s*([\d,]+)\s*(?:,\s*\d+\s*S)?\s*\)\s*(?::\s*(.*))?$/i);
       if (!m) return;
-      // try the name as written ("Nova (Stealth Mode)"), then without a variant's base ("… Raptors (Zergling)")
-      const named = nm => GAME.units.find(u => !u.summoned && u.race === list.race && (same(u.name, nm) || same(u.plural || u.name + 's', nm)));
+      const wanted = (m[4] || '').split(/\s*,\s*/).filter(Boolean);
+      // try the name as written ("Nova (Stealth Mode)"), then without a variant's base ("… Raptors (Zergling)");
+      // NewRecruit's "Nova: Stealth Mode" picks the profile by its option
+      const named = nm => GAME.units.find(u => !u.summoned && u.race === list.race && (same(u.name, nm) || same(u.plural || u.name + 's', nm)
+        || (u.nr && same(u.nr.name, nm) && wanted.some(w => same(w, u.nr.option)))));
       const def = named(m[2]) || named(m[2].replace(/\s*\([^)]*\)$/, ''));
       if (!def) return;
-      const wanted = (m[4] || '').split(/\s*,\s*/).filter(Boolean);
-      const ups = wanted.map(n => (def.upgrades || []).find(u => same(u.n, n))).filter(Boolean);
+      const ups = wanted.map(n => (def.upgrades || []).find(u => same(u.n, n) || (u.nr && same(u.nr, n)))).filter(Boolean);
       const cost = parseInt(m[3].replace(/[^\d]/g, ''), 10);
       const byCost = def.sizes.findIndex((s, i) => s[1] + ups.reduce((a, u) => a + upCost(u, i), 0) === cost);
       const n = def.sizes.some(s => s[0] === Number(m[1])) ? Number(m[1]) : byCost >= 0 ? def.sizes[byCost][0] : def.sizes[0][0];
