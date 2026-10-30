@@ -363,6 +363,36 @@ Created with newrecruit.eu v37.7`;
   const key = x => x.units.map(u => JSON.stringify([u.id, u.n, [...u.up].sort()])).sort();
   eq(key(l), key(armada()), 'same units as the built-in Golden Armada');
 });
+test('NewRecruit: variants carry their base unit, as on the card title', () => {
+  const t = E.toNewRecruit(list('zerg', 'ks', 'standard', [['ksraptor', 6]], []));
+  ok(t.includes('\n# Tactical:\n\n# Units:\n6x Kerrigan Swarm Raptors (Zergling) (230, 1S)\n'), t);
+  const p = E.toNewRecruit(list('protoss', 'khalai', 'standard', [['praetor', 3], ['zealot', 3]], []));
+  ok(p.includes('3x Zealots (170, 2S)\n\n3x Praetor Guard (Zealot) (260, 2S)'), p);
+  ok(E.toNewRecruit(list('terran', 'nco', 'standard', [['nova-stealth', 1]], [])).includes('Nova (Stealth Mode) (240, 1S)'));
+});
+test('NewRecruit import: the real export of Kerrigan Swarm Raptors', () => {
+  const l = E.fromText(`Zerg - Zerg (230 Minerals, 0 Gas)
+1 Supply, 0 CP
+
+Deployment Maps
+Mission Card
+
+# Faction:
+Kerrigan's Swarm
+
+# Tactical:
+
+# Units:
+6x Kerrigan Swarm Raptors (Zergling) (230, 1S)
+
+
+Created with newrecruit.eu v37.7`);
+  eq([l.race, l.faction, l.scale], ['zerg', 'ks', 'skirmish']);
+  eq(l.units.map(u => [u.id, u.n]), [['ksraptor', 6]]);
+  eq(E.evaluate(l).minerals, 230);
+  const n = E.fromText('Terran - Terran (240 Minerals, 0 Gas)\n\n# Faction:\nNova Covert Ops\n\n# Units:\nNova (Stealth Mode) (240, 1S)\n');
+  eq(n.units.map(u => u.id), ['nova-stealth'], "Nova's own brackets still match");
+});
 E.EXAMPLES.forEach((x, i) => test(`NewRecruit round trip: ${x.name}`, () => {
   const a = E.example(i), b = E.fromText(E.toNewRecruit(a));
   const key = l => l.units.map(u => JSON.stringify([u.id, u.n, [...u.up].sort()])).sort();

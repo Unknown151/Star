@@ -21,6 +21,7 @@
                      fx numeric effects for the effective datasheet:
                         {stat:'hp', add:1} · {w:'Weapon'|[..], kw:'KEYWORD (X)'} · {w:'Weapon', set:{surge,sd}} · {pool0:1}
      tags:           faction tags — every one must be on the army's Faction Card.
+     variantOf:      the unit a variant is printed under, e.g. RAPTOR (ZERGLING) → `Zergling`.
      ═══════════════════════════════════════════════════════════════════════════ -->
 <script id="game-data">
 const BURROW_AMBUSH = `When it Deploys, may PLACE (18) from your Entry Edge instead (no model within 10″ of enemies); its activation then ends.`;
@@ -315,7 +316,7 @@ const GAME = {
         { n:`Bayonet`, c:[20,30], rep:`Strike`, w:`Bayonet | E | Ground | 2 | 5+ | – | – | 1 | –` },
       ] },
 
-    { id:'raider', race:'terran', name:`Raynor's Raider`, plural:`Raynor's Raiders`, slot:'core', role:`Damage Dealer`, base:`32mm`,
+    { id:'raider', race:'terran', variantOf:`Marine`, name:`Raynor's Raider`, plural:`Raynor's Raiders`, slot:'core', role:`Damage Dealer`, base:`32mm`,
       tags:['TERRAN', `RAYNOR'S RAIDERS`], ctags:`Biological, Light, Ground`,
       stats:{ spd:`4″/7″`, arm:`5+`, eva:`5+`, hp:2, size:2 }, supply:`1–6 → 1`,
       sizes:[[6,230,1]],
@@ -349,7 +350,7 @@ const GAME = {
         { n:`Laser Targeting Systems`, c:[20,40], t:`Assault · Passive`, d:`Quad K12 gains LONG RANGE (16″).`, fx:[{ w:`Quad K12`, kw:`LONG RANGE (16″)` }] },
       ] },
 
-    { id:'specops', race:'terran', name:`Spec Ops Marauder`, slot:'core', role:`Damage Dealer`, base:`50mm`,
+    { id:'specops', race:'terran', variantOf:`Marauder`, name:`Spec Ops Marauder`, slot:'core', role:`Damage Dealer`, base:`50mm`,
       tags:['TERRAN', 'NOVA COVERT OPS'], ctags:`Armoured, Biological, Ground`,
       stats:{ spd:`4″/7″`, arm:`4+`, eva:`6+`, hp:5, size:2 }, supply:`1 → 0 · 2 → 1`,
       sizes:[[2,230,1]],
@@ -546,7 +547,7 @@ const GAME = {
         { n:`Adrenal Glands`, c:20, t:`Combat · Passive`, d:`Claws / Shredding Claws gain PRECISION (2).`, fx:[{ w:[`Claws`, `Shredding Claws`], kw:`PRECISION (2)` }] },
       ] },
 
-    { id:'raptor', race:'zerg', name:`Raptor`, slot:'elite', role:`Damage Dealer`, base:`32mm`,
+    { id:'raptor', race:'zerg', variantOf:`Zergling`, name:`Raptor`, slot:'elite', role:`Damage Dealer`, base:`32mm`,
       tags:['ZERG'], ctags:`Biological, Light, Ground`,
       stats:{ spd:`5″/9″`, arm:`6+`, eva:`4+`, hp:1, size:1 }, supply:`1–6 → 0 · 7–12 → 1 · 13–18 → 2`,
       sizes:[[12,210,1],[18,260,2]],
@@ -564,7 +565,7 @@ const GAME = {
         { n:`Adrenal Glands`, c:20, t:`Combat · Passive`, d:`Claws / Shredding Claws gain PRECISION (2).`, fx:[{ w:[`Claws`, `Shredding Claws`], kw:`PRECISION (2)` }] },
       ] },
 
-    { id:'ksraptor', race:'zerg', name:`Kerrigan Swarm Raptor`, model:`Swarm Raptor`, slot:'elite', role:`Damage Dealer`, base:`32mm`, unique:1,
+    { id:'ksraptor', race:'zerg', variantOf:`Zergling`, name:`Kerrigan Swarm Raptor`, model:`Swarm Raptor`, slot:'elite', role:`Damage Dealer`, base:`32mm`, unique:1,
       tags:['ZERG', `KERRIGAN'S SWARM`], ctags:`Biological, Light, Ground`,
       stats:{ spd:`5″/9″`, arm:`5+`, eva:`4+`, hp:2, size:1 }, supply:`1–3 → 0 · 4–6 → 1`,
       sizes:[[6,230,1]],
@@ -577,7 +578,7 @@ const GAME = {
         [`Devastating Charge`, `Assault · Passive`, `IMPACT (2) 5+.`],
       ] },
 
-    { id:'swarmling', race:'zerg', name:`Swarmling`, slot:'core', role:`Damage Dealer`, base:`32mm`,
+    { id:'swarmling', race:'zerg', variantOf:`Zergling`, name:`Swarmling`, slot:'core', role:`Damage Dealer`, base:`32mm`,
       tags:['ZERG'], ctags:`Biological, Light, Ground`,
       stats:{ spd:`4″/8″`, arm:`6+`, eva:`5+`, hp:1, size:1 }, supply:`1–6 → 0 · 7–18 → 1`,
       sizes:[[18,210,1]],
@@ -590,7 +591,7 @@ const GAME = {
       ],
       upgrades:[{ n:`Burrow Ambush`, c:20, t:`Movement · Passive`, d:BURROW_AMBUSH }] },
 
-    { id:'vileling', race:'zerg', name:`Vileling`, slot:'core', role:`Damage Dealer`, base:`32mm`,
+    { id:'vileling', race:'zerg', variantOf:`Zergling`, name:`Vileling`, slot:'core', role:`Damage Dealer`, base:`32mm`,
       tags:['ZERG', `ZAGARA'S SWARM`], ctags:`Biological, Light, Ground`,
       stats:{ spd:`4″/8″`, arm:`6+`, eva:`5+`, hp:1, size:1 }, supply:`1–6 → 1 · 7–18 → 2`,
       sizes:[[18,180,2]],
@@ -615,7 +616,7 @@ const GAME = {
       abilities:[...ROACH_ABILITIES, [`Devastating Charge`, `Assault · Passive`, `IMPACT (2) 4+.`]],
       upgrades:ROACH_UPGRADES },
 
-    { id:'vile', race:'zerg', name:`Vile`, slot:'core', role:`Tank`, base:`50mm`,
+    { id:'vile', race:'zerg', variantOf:`Roach`, name:`Vile`, slot:'core', role:`Tank`, base:`50mm`,
       tags:['ZERG'], ctags:`Armoured, Biological, Ground`,
       stats:{ spd:`4″/7″`, arm:`3+`, eva:`5+`, hp:4, size:2 }, supply:`1 → 0 · 2–3 → 1`,
       sizes:[[3,190,1]],
@@ -628,7 +629,7 @@ const GAME = {
         [`Devastating Charge`, `Assault · Passive`, `IMPACT (1) 4+.`]],
       upgrades:ROACH_UPGRADES },
 
-    { id:'corpser', race:'zerg', name:`Corpser`, slot:'core', role:`Tank`, base:`50mm`,
+    { id:'corpser', race:'zerg', variantOf:`Roach`, name:`Corpser`, slot:'core', role:`Tank`, base:`50mm`,
       tags:['ZERG'], ctags:`Armoured, Biological, Ground`,
       stats:{ spd:`4″/7″`, arm:`3+`, eva:`5+`, hp:4, size:2 }, supply:`1 → 0 · 2–3 → 1`,
       sizes:[[3,220,1]], summons:['roachling'],
@@ -801,7 +802,7 @@ const GAME = {
         { n:`We Stand as One`, c:20, t:`Combat · Passive`, d:`Psi Blades gain PRECISION (2) if the target is also Engaged with another friendly unit.` },
       ] },
 
-    { id:'praetor', race:'protoss', name:`Praetor Guard`, plural:`Praetor Guard`, slot:'elite', role:`Damage Dealer`, base:`40mm`, unique:1,
+    { id:'praetor', race:'protoss', variantOf:`Zealot`, name:`Praetor Guard`, plural:`Praetor Guard`, slot:'elite', role:`Damage Dealer`, base:`40mm`, unique:1,
       tags:['PROTOSS', 'KHALAI'], ctags:`Biological, Light, Ground`,
       stats:{ sh:3, spd:`4″/7″`, arm:`5+`, eva:`5+`, hp:4, size:2 }, supply:`1 → 1 · 2–3 → 2`,
       sizes:[[3,260,2]],
@@ -833,7 +834,7 @@ const GAME = {
         { n:`Glaive Strike`, c:20, rep:`Strike`, w:`Glaive Strike | E | Ground | 1 | 4+ | Light | D3 | 1 | PIERCE Light (2)` },
       ] },
 
-    { id:'watchers', race:'protoss', name:`Nerazim Watchers`, plural:`Nerazim Watchers`, model:`Watcher`, slot:'core', role:`Damage Dealer`, base:`40mm`,
+    { id:'watchers', race:'protoss', variantOf:`Adept`, name:`Nerazim Watchers`, plural:`Nerazim Watchers`, model:`Watcher`, slot:'core', role:`Damage Dealer`, base:`40mm`,
       tags:['PROTOSS', 'NERAZIM'], ctags:`Biological, Light, Ground`,
       stats:{ sh:2, spd:`5″/8″`, arm:`5+`, eva:`5+`, hp:3, size:2 }, supply:`1–2 → 0 · 3–4 → 1`,
       sizes:[[4,210,1]],
@@ -921,7 +922,7 @@ const GAME = {
         { n:`Farsight`, c:20, t:`Movement · Active · 1 PE`, d:`A friendly unit within 12″ may Evade all attacks until End of Round.` },
       ] },
 
-    { id:'twilight', race:'protoss', name:`Twilight Templar`, plural:`Twilight Templar`, slot:'support', role:`Damage Dealer`, base:`40mm`, unique:1,
+    { id:'twilight', race:'protoss', variantOf:`High Templar`, name:`Twilight Templar`, plural:`Twilight Templar`, slot:'support', role:`Damage Dealer`, base:`40mm`, unique:1,
       tags:['PROTOSS', 'TEMPLAR CASTE'], ctags:`Biological, Light, Psionic, Ground`,
       stats:{ sh:3, spd:`4″/7″`, arm:`5+`, eva:`6+`, hp:3, size:2 }, supply:`1 → 0 · 2 → 1`,
       sizes:[[2,230,1]],
@@ -1867,7 +1868,9 @@ const Engine = (() => {
     groups.forEach((g, gi) => {
       if (gi) L.push('');
       g.forEach(x => {
-        const name = x.models > 1 ? `${x.models}x ${x.def.plural || x.def.name + 's'}` : x.def.name;
+        // NewRecruit names variants after the card title: "6x Kerrigan Swarm Raptors (Zergling)"
+        const base = x.models > 1 ? `${x.models}x ${x.def.plural || x.def.name + 's'}` : x.def.name;
+        const name = x.def.variantOf ? `${base} (${x.def.variantOf})` : base;
         L.push(`${name} (${x.cost}, ${x.supply}S)${x.ups.length ? ': ' + x.ups.map(u => u.n).join(', ') : ''}`);
       });
     });
@@ -1911,7 +1914,9 @@ const Engine = (() => {
     unitLines.forEach(line => {
       const m = line.match(/^(?:(\d+)\s*x\s+)?(.+?)\s*\(\s*([\d,]+)\s*(?:,\s*\d+\s*S)?\s*\)\s*(?::\s*(.*))?$/i);
       if (!m) return;
-      const def = GAME.units.find(u => !u.summoned && u.race === list.race && (same(u.name, m[2]) || same(u.plural || u.name + 's', m[2])));
+      // try the name as written ("Nova (Stealth Mode)"), then without a variant's base ("… Raptors (Zergling)")
+      const named = nm => GAME.units.find(u => !u.summoned && u.race === list.race && (same(u.name, nm) || same(u.plural || u.name + 's', nm)));
+      const def = named(m[2]) || named(m[2].replace(/\s*\([^)]*\)$/, ''));
       if (!def) return;
       const wanted = (m[4] || '').split(/\s*,\s*/).filter(Boolean);
       const ups = wanted.map(n => (def.upgrades || []).find(u => same(u.n, n))).filter(Boolean);
