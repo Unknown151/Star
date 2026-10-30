@@ -1,0 +1,2267 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e1116">
+<title>Supply Line — TMG list builder</title>
+<meta name="description" content="Unofficial army list builder for the StarCraft tabletop miniatures game. Not affiliated with Blizzard Entertainment or Archon Studio.">
+
+<!-- ═══════════════════════════════════════════════════════════════════════════
+     GAME DATA  —  edit only this block for a new wave or a new cost table.
+     Sources: official Print & Play card sheets (Waves 1–3) + Cost Table 09.10.2026.
+     Ability text is paraphrased (short summaries, not card text).
+
+     Weapon string:  Name | Range | Target | RoA | Hit | Surge | S.Die | Dmg | Keywords
+                     Range "E" = Engagement (close combat weapon).
+     sizes:          [models, minerals, starting Supply] — the only legal squad sizes.
+     Upgrade:        n name · c cost (number, or [cost per size] in the same order as sizes)
+                     t timing/type · d short summary · sp 1 = SPECIALIST (one model)
+                     w weapon string it grants · rep weapon it replaces (else it's added)
+                     fx numeric effects for the effective datasheet:
+                        {stat:'hp', add:1} · {w:'Weapon'|[..], kw:'KEYWORD (X)'} · {w:'Weapon', set:{surge,sd}} · {pool0:1}
+     tags:           faction tags — every one must be on the army's Faction Card.
+     ═══════════════════════════════════════════════════════════════════════════ -->
+<script id="game-data">
+const BURROW_AMBUSH = `When it Deploys, may PLACE (18) from your Entry Edge instead (no model within 10″ of enemies); its activation then ends.`;
+const ROACH_UPGRADES = [
+  { n:`Tunneling Claws`, c:10, t:`Passive`, d:`While BURROWED it can Move and Run without losing the status and pass through other units' bases (not Force Fields).` },
+  { n:`Burrow Ambush`, c:20, t:`Passive`, d:BURROW_AMBUSH },
+  { n:`Glial Reconstitution`, c:10, t:`Movement · Active · 1 BM`, d:`BUFF Speed (1), or (2) if ON CREEP. Doesn't stack with Wild Mutation. (Roach/Corpser cards misprint the cost as 1 CP.)` },
+  { n:`Hydriodic Bile`, c:10, t:`Passive`, d:`Acid Saliva gets Surge Light and S Dice D3+1.`, fx:[{ w:`Acid Saliva`, set:{ surge:`Light`, sd:`D3+1` } }] },
+];
+const ROACH_ABILITIES = [
+  [`Burrow`, `Any · Active · 2 BM`, `If unengaged, gain or lose BURROWED.`],
+  [`Regeneration`, `Passive`, `HEAL (2) when it activates while BURROWED.`],
+];
+
+const GAME = {
+  version: `Waves 1–3 · Cost Table 09.10.2026`,
+  downloads: `https://starcraft-tmg.com/downloads`,
+
+  scales: {
+    skirmish: { name:`Skirmish`, limit:1000, table:`36″ × 36″` },
+    standard: { name:`Standard`, limit:2000, table:`36″ × 54″` },
+    grand:    { name:`Grand Offensive`, limit:3000, min:2001, table:`36″ × 72″` },
+  },
+  gasRatio: 0.1,
+
+  races: {
+    terran:  { name:`Terran`,  res:`CP`, resName:`Command Points` },
+    zerg:    { name:`Zerg`,    res:`BM`, resName:`Biomass`, needsCreep:true },
+    protoss: { name:`Protoss`, res:`PE`, resName:`Psionic Energy` },
+  },
+
+  // ───────────────────────────── FACTION CARDS ─────────────────────────────
+  factions: [
+    { id:'taf', race:'terran', name:`Terran Armed Forces`, tags:['TERRAN'], res:1,
+      slots:{ core:3, elite:1, support:1, air:1 },
+      abilities:[
+        [`Tactical Retreat`, `Movement · Active`, `The active unit ignores the Disengage penalty this Round.`],
+        [`Terran Tenacity`, `Movement · Active · Once per Game`, `Take the First Player Marker; nobody else can claim it for the rest of this Phase.`],
+      ] },
+    { id:'rr', race:'terran', name:`Raynor's Raiders`, tags:['TERRAN', `RAYNOR'S RAIDERS`], res:1,
+      slots:{ core:3, support:1, air:1, hero:1 }, summons:['pdd'],
+      abilities:[
+        [`Rapid Ingress`, `Movement · Active`, `Set a Point Defense Drone anywhere more than 1″ from enemies; it's removed at End of Round.`],
+        [`Ready for Pickup?`, `Movement · Active · Once per Game`, `The active unit PLACEs (12) instead of a standard action — not into Engagement Range.`],
+      ] },
+    { id:'nco', race:'terran', name:`Nova Covert Ops`, tags:['TERRAN', 'NOVA COVERT OPS'], res:1,
+      slots:{ core:3, elite:1, support:1, hero:1 }, summons:['sabotage'],
+      abilities:[
+        [`Griffin Support`, `Movement · Active`, `Set a Sabotage Drone within 12″ of a friendly unit, more than 1″ from enemies; removed at End of Round.`],
+        [`Mark for Death`, `Movement · Active`, `Mark an enemy unit: the first weapon each friendly unit uses against it gains CRITICAL HIT (1) and PRECISION (1).`],
+      ] },
+
+    { id:'zs', race:'zerg', name:`Zerg Swarm`, tags:['ZERG'], res:1,
+      slots:{ core:3, elite:1, support:1, air:1 },
+      abilities:[
+        [`Brood Instinct`, `Any · Reaction`, `+1 to a friendly Evade roll.`],
+        [`Rapid Burrowing`, `Movement · Active`, `A friendly unengaged Ground Zerg unit becomes BURROWED, even if it has already activated this Round.`],
+        [`Zerg Creep`, `Army building`, `Take exactly one Creep card.`],
+      ] },
+    { id:'ks', race:'zerg', name:`Kerrigan's Swarm`, tags:['ZERG', `KERRIGAN'S SWARM`], res:1,
+      slots:{ core:3, elite:2, hero:1 }, summons:['omega'],
+      abilities:[
+        [`Wild Mutation`, `Any · Active`, `If the active unit is ON CREEP: BUFF Speed (1) and its first weapon gains PRECISION (1).`],
+        [`Omega Network`, `Movement · Active`, `If you have no Omega Worm, set one on Ground Level more than 10″ from enemies (it can't use abilities that Round, except Structure).`],
+        [`Zerg Creep`, `Army building`, `Take exactly one Creep card.`],
+      ] },
+    { id:'zgs', race:'zerg', name:`Zagara's Swarm`, tags:['ZERG', `ZAGARA'S SWARM`], res:1,
+      slots:{ core:4, support:1, hero:1 },
+      abilities:[
+        [`Instinctive Reaction`, `Any · Reaction`, `When an enemy declares a close combat attack on a friendly unit, that unit may Evade.`],
+        [`Scourge Queen`, `Combat · Active`, `If the active unit has more models than all enemies engaged with it combined, its melee weapons gain INSTANT and PRECISION (4).`],
+        [`Zerg Creep`, `Army building`, `Take exactly one Creep card.`],
+      ] },
+
+    { id:'khalai', race:'protoss', name:`Khalai`, tags:['PROTOSS', 'KHALAI'], res:1,
+      slots:{ core:3, elite:2, hero:1 }, summons:['pylon'],
+      abilities:[
+        [`Pylon Warp-In`, `Movement · Active`, `If you have no Pylon, set one on Ground Level more than 10″ from enemies (no abilities that Round, except Structure).`],
+        [`Bound by the Khala`, `Movement · Active`, `When the active unit's activation ends, immediately activate another friendly unit that can still activate this Phase.`],
+      ] },
+    { id:'daelaam', race:'protoss', name:`Daelaam`, tags:['PROTOSS'], res:1,
+      slots:{ core:3, elite:1, support:1, air:1 },
+      abilities:[
+        [`Dae'uhl`, `Any · Reaction`, `When a friendly unit receives Damage, reduce its Total Damage by 2 (min 1).`],
+        [`Mass Recall`, `Movement · Active · Once per Game`, `Place the Faction Indicator anywhere; friendly Protoss units within 6″ return to Reserves.`],
+      ] },
+    { id:'nerazim', race:'protoss', name:`Nerazim`, tags:['PROTOSS', 'NERAZIM'], res:1,
+      slots:{ core:2, elite:3, hero:1 },
+      abilities:[
+        [`Might of the Nerazim`, `Any · Reaction`, `When a friendly unit loses HIDDEN: BUFF Speed (2) and its first weapon gains CRITICAL HIT (2).`],
+        [`Darkness Descends`, `Movement · Active`, `The active Biological unit is HIDDEN until End of Round.`],
+      ] },
+    { id:'templar', race:'protoss', name:`Templar Caste`, tags:['PROTOSS', 'TEMPLAR CASTE'], res:1,
+      slots:{ core:3, support:2, hero:1 },
+      abilities:[
+        [`Our Duty Is Unending`, `Any · Active · Once per Game`, `Ready up to two Exhausted Tactical Cards.`],
+        [`Khassar de Templari`, `Any · Active`, `Instead of an action: another friendly Biological unit that already activated this Phase performs one action now, then takes NON-LETHAL DAMAGE (3).`],
+      ] },
+  ],
+
+  // ───────────────────────── TACTICAL & CREEP CARDS ─────────────────────────
+  // res = resource generated when Exhausted. kind:'creep' = Zerg Creep card (exactly one, no slots).
+  cards: [
+    // Terran
+    { id:'barracks', race:'terran', name:`Barracks`, gas:30, res:1, slots:{ core:1 },
+      abilities:[[`Go! Go! Go!`, `Movement · Active`, `The active Biological unit makes a free 2″ Move (doesn't count towards its action).`]] },
+    { id:'barracks-proxy', race:'terran', name:`Barracks (Proxy)`, gas:40, res:2, unique:1, slots:{ core:2 },
+      abilities:[
+        [`Go! Go! Go!`, `Movement · Active`, `Free 2″ Move for the active Biological unit.`],
+        [`Armed and Ready`, `Movement · Active`, `The active Biological unit Deploys from any non-Entry table edge, more than 10″ from enemies — not if another friendly Biological unit already Deployed this Round.`],
+      ] },
+    { id:'barracks-tl', race:'terran', name:`Barracks (Tech Lab)`, gas:40, res:2, unique:1, slots:{ core:1, elite:1 },
+      abilities:[
+        [`Go! Go! Go!`, `Movement · Active`, `Free 2″ Move for the active Biological unit.`],
+        [`Let's Have a Blast!`, `Assault · Active`, `The active Biological unit's first ranged weapon gains ANTI-EVADE (1).`],
+      ] },
+    { id:'engbay', race:'terran', name:`Engineering Bay`, gas:25, res:1, slots:{ core:1 },
+      abilities:[
+        [`Infantry Armor`, `Any · Reaction`, `Before a friendly Biological Armour roll: TOUGH (1).`],
+        [`Infantry Weapons`, `Assault · Active`, `The active Biological unit's first ranged weapon gains CRITICAL HIT (1).`],
+      ] },
+    { id:'academy', race:'terran', name:`Academy`, gas:40, res:1, unique:1, slots:{ support:2 },
+      abilities:[[`Advanced Training`, `Any · Reaction · once per Round`, `A friendly Support unit's CP ability costs 1 less (min 0). This card isn't Exhausted by it.`]] },
+    { id:'factory', race:'terran', name:`Factory`, gas:35, res:1, slots:{ elite:2 },
+      abilities:[[`Field Repair`, `Movement · Active`, `The active Mechanical unit HEALs (2).`]] },
+    { id:'factory-tl', race:'terran', name:`Factory (Tech Lab)`, gas:40, res:1, unique:1, slots:{ elite:2 },
+      abilities:[
+        [`Field Repair`, `Movement · Active`, `The active Mechanical unit HEALs (2).`],
+        [`Pound 'Em Flat!`, `Assault · Active`, `If the active Mechanical unit is Stationary, its first ranged weapon gains PRECISION (2).`],
+      ] },
+    { id:'armory', race:'terran', name:`Armory`, gas:30, res:1, slots:{ elite:1 },
+      abilities:[
+        [`Vehicle Plating`, `Any · Reaction`, `Before a friendly Mechanical Armour roll: TOUGH (1).`],
+        [`Vehicle Weapons`, `Assault · Active`, `The active Mechanical unit's first ranged weapon gains CRITICAL HIT (1).`],
+      ] },
+    { id:'orbital', race:'terran', name:`Orbital Command`, gas:25, res:1, unique:1, slots:{ core:1 },
+      abilities:[
+        [`Comsat Station`, `Movement · Active`, `Pick a non-Entry table edge: enemies can't Deploy from it this Round.`],
+        [`Scanner Sweep`, `Movement · Active`, `Faction Indicator anywhere; enemies within 6″ of it lose HIDDEN.`],
+      ] },
+    { id:'supplydepot', race:'terran', name:`Supply Depot`, gas:40, res:1, unique:1, slots:{ core:1, elite:1, hero:1 },
+      abilities:[[`Additional Supply Depots`, `Movement · Active`, `The active unit counts +1 Supply for Mission Markers and objectives.`]] },
+    { id:'dropship', race:'terran', name:`Dropship`, gas:35, res:1, unique:1, slots:{ core:1, support:1 },
+      abilities:[
+        [`Strap In!`, `Movement · Active`, `The active unengaged Ground unit returns to Reserves instead of acting.`],
+        [`Ready for Dust-Off`, `Movement · Active`, `Faction Indicator more than 10″ from enemies; at End of Round you may Deploy one Ground unit touching it (it isn't an Entry Edge).`],
+      ] },
+    { id:'vanadium', race:'terran', name:`Vanadium Plating`, gas:25, res:1, slots:{ support:1 },
+      abilities:[[`Crystalline Alloy`, `Any · Reaction`, `Before a friendly Mechanical Armour roll: DODGE (2).`]] },
+
+    // Zerg — creep cards
+    { id:'creep-accel', race:'zerg', kind:'creep', name:`Accelerating Creep`, gas:0, res:0, unique:1, slots:{},
+      abilities:[
+        [`Speed on Creep`, `Passive`, `The active friendly Zerg unit gets +1 Speed while ON CREEP.`],
+        [`Living Glob of Tissue`, `Passive`, `Creep Tumors have STAY IN PLAY and DISPLACEMENT.`],
+        [`Creep Removal`, `Passive`, `An enemy ending a move, deploy, run, charge or disengage within 1″ of a friendly Creep Tumor removes it.`],
+      ] },
+    { id:'creep-malignant', race:'zerg', kind:'creep', name:`Malignant Creep`, gas:10, res:0, unique:1, tags:['ZERG', `KERRIGAN'S SWARM`], slots:{},
+      abilities:[
+        [`Malevolent Matriarch`, `Passive`, `A friendly Zerg unit that declares a Charge while ON CREEP gets +1 to its IMPACT hit rolls.`],
+        [`Living Glob of Tissue`, `Passive`, `Creep Tumors have STAY IN PLAY and DISPLACEMENT.`],
+        [`Creep Removal`, `Passive`, `Enemies ending a move within 1″ of a friendly Creep Tumor remove it.`],
+      ] },
+    { id:'creep-reactive', race:'zerg', kind:'creep', name:`Reactive Creep`, gas:10, res:0, unique:1, tags:['ZERG', `ZAGARA'S SWARM`], slots:{},
+      abilities:[
+        [`Reactive Tissue`, `Passive`, `Friendly Zerg units ON CREEP have DODGE (1) against attacks.`],
+        [`Living Glob of Tissue`, `Passive`, `Creep Tumors have STAY IN PLAY and DISPLACEMENT.`],
+        [`Creep Removal`, `Passive`, `Enemies ending a move within 1″ of a friendly Creep Tumor remove it.`],
+      ] },
+    // Zerg — tactical
+    { id:'pool', race:'zerg', name:`Spawning Pool`, gas:25, res:1, slots:{ core:1 },
+      abilities:[[`Feral Rage`, `Combat · Active`, `The first melee weapon used gains PRECISION (2).`]] },
+    { id:'sixpool', race:'zerg', name:`Spawning Pool (Six Pool)`, gas:35, res:2, unique:1, slots:{ core:2 },
+      abilities:[
+        [`Timing Push`, `Movement · Active`, `The active Zergling-type unit Deploys from any non-Entry table edge, more than 10″ from enemies.`],
+        [`Feral Rage`, `Combat · Active`, `The first melee weapon used gains PRECISION (2).`],
+      ] },
+    { id:'warren', race:'zerg', name:`Roach Warren`, gas:25, res:1, slots:{ core:1 },
+      abilities:[[`Nasty Surprise`, `Assault · Active`, `The active Ground unit loses BURROWED.`]] },
+    { id:'hydraden', race:'zerg', name:`Hydralisk Den`, gas:30, res:1, slots:{ elite:2 },
+      abilities:[[`Missile Attacks`, `Assault · Active`, `The first ranged weapon used gains PRECISION (1).`]] },
+    { id:'evo', race:'zerg', name:`Evolution Chamber`, gas:25, res:1, slots:{ core:1 },
+      abilities:[
+        [`Carapace`, `Any · Reaction`, `Before a friendly Armour roll: TOUGH (1).`],
+        [`Extended Claws`, `Assault · Active`, `+1 to IMPACT hit rolls.`],
+      ] },
+    { id:'hatchery', race:'zerg', name:`Hatchery`, gas:30, res:1, slots:{ support:1 },
+      abilities:[
+        [`Lie in Wait`, `Movement · Active`, `The active unengaged Ground unit becomes BURROWED.`],
+        [`Creep Spread`, `Movement · Active`, `Set a Creep Tumor within 6″ (no LoS) of your Entry Edge or a friendly Creep Tumor.`],
+      ] },
+    { id:'lair', race:'zerg', name:`Lair`, gas:35, res:1, unique:1, slots:{ core:1, elite:1 },
+      abilities:[
+        [`Predation`, `Any · Active`, `Melee weapons gain INSTANT.`],
+        [`Creep Spread`, `Movement · Active`, `Set a Creep Tumor within 6″ of your Entry Edge or a friendly Creep Tumor.`],
+      ] },
+    { id:'overseer', race:'zerg', name:`Overseer`, gas:25, res:1, unique:1, slots:{ support:1 },
+      abilities:[
+        [`Oversight Mode`, `Movement · Active`, `Faction Indicator anywhere; enemies within 6″ of it lose HIDDEN.`],
+        [`Pneumatized Carapace`, `Assault · Reaction`, `After a friendly Charge roll, roll another D6 and keep the higher.`],
+      ] },
+    { id:'overlord', race:'zerg', name:`Overlord`, gas:35, res:1, unique:1, slots:{ core:1, elite:1, hero:1 },
+      abilities:[
+        [`Ventral Sacs`, `Movement · Active`, `Faction Indicator more than 10″ from enemies; at End of Round you may Deploy one Ground unit touching it.`],
+        [`Excrete Creep`, `Assault · Active`, `Set a Creep Tumor within 6″ of your Entry Edge or a friendly Creep Tumor.`],
+      ] },
+    { id:'cocoon', race:'zerg', name:`Cocoon`, gas:30, res:0, unique:1, slots:{ elite:1 }, note:`Generates no BM.`,
+      abilities:[
+        [`Spawn Larva`, `Movement · Active`, `The active non-Unique Biological Size 1 unit RESPAWNs (2).`],
+        [`Ravager Morph`, `Movement · Active · Once per Game`, `The active Roach unit performs MORPH (Ravager) 1.`],
+      ] },
+    { id:'defilermound', race:'zerg', name:`Defiler Mound`, gas:35, res:1, unique:1, slots:{ elite:1, support:1 },
+      abilities:[
+        [`Poisonous Essence`, `Movement · Active`, `Mark the active unit; at end of the Assault Phase every Biological enemy engaged with it takes NON-LETHAL DAMAGE (2).`],
+        [`Tunnel Network`, `Movement · Active`, `The active unengaged Ground unit returns to Reserves instead of acting.`],
+      ] },
+
+    // Protoss
+    { id:'gateway', race:'protoss', name:`Gateway`, gas:25, res:1, slots:{ core:1 },
+      abilities:[[`Quick Strikes`, `Combat · Active`, `The first melee weapon used gains PRECISION (2).`]] },
+    { id:'gate-chrono', race:'protoss', name:`Gate Chronoboosted`, gas:35, res:1, unique:1, slots:{ core:1, elite:1 },
+      abilities:[
+        [`Zealous Charge`, `Movement · Active`, `BUFF Speed (2).`],
+        [`Quick Strikes`, `Combat · Active`, `The first melee weapon used gains PRECISION (2).`],
+      ] },
+    { id:'warpgate', race:'protoss', name:`Warp Gate`, gas:40, res:1, unique:1, slots:{ core:2 },
+      abilities:[
+        [`Warp In`, `Movement · Active`, `The active Ground unit Deploys from any non-Entry table edge, more than 10″ from enemies — not if another friendly Ground unit already Deployed this Round.`],
+        [`Quick Strikes`, `Combat · Active`, `The first melee weapon used gains PRECISION (2).`],
+      ] },
+    { id:'warpprism', race:'protoss', name:`Warp Prism`, gas:35, res:1, unique:1, slots:{ core:2 },
+      abilities:[
+        [`Phase`, `Movement · Active`, `The active unit PLACEs (3).`],
+        [`Warp Conduit`, `Movement · Active`, `Faction Indicator more than 10″ from enemies; at End of Round you may Deploy one Ground unit touching it (not an Entry Edge).`],
+      ] },
+    { id:'nexus', race:'protoss', name:`Nexus`, gas:40, res:1, unique:1, slots:{ core:2 },
+      abilities:[
+        [`Ancient Pride`, `Any · Active`, `The first weapon used gains INSTANT.`],
+        [`Strategic Recall`, `Movement · Active`, `The active unengaged Ground unit returns to Reserves instead of acting.`],
+      ] },
+    { id:'overnexus', race:'protoss', name:`Overcharged Nexus`, gas:35, res:1, unique:1, slots:{ core:1, elite:1 },
+      abilities:[
+        [`Photon Overcharge`, `Any · Reaction`, `An enemy arriving from Reserves anywhere other than its own Entry Edge takes HITS 3 (1).`],
+        [`Strategic Recall`, `Movement · Active`, `The active unengaged Ground unit returns to Reserves instead of acting.`],
+      ] },
+    { id:'forge', race:'protoss', name:`Forge`, gas:30, res:1, slots:{ elite:1 },
+      abilities:[
+        [`Ground Armor`, `Any · Reaction`, `Before a friendly Ground Armour roll: TOUGH (1).`],
+        [`Ground Weapons`, `Assault · Active`, `The active Ground unit's first ranged weapon gains CRITICAL HIT (1).`],
+      ] },
+    { id:'twilight-council', race:'protoss', name:`Twilight Council`, gas:40, res:1, unique:1, slots:{ elite:1, support:1 },
+      abilities:[
+        [`Veil of Shadows`, `Any · Reaction`, `After a friendly unit resolves a PLACE: HEAL (2).`],
+        [`Weapons of the Firstborn`, `Assault · Active`, `The active Ground unit's first ranged weapon gets BUFF Range (4).`],
+      ] },
+    { id:'powerfield', race:'protoss', name:`Power Field`, gas:40, res:1, unique:1, slots:{ core:1, elite:1, hero:1 },
+      abilities:[[`Guardian Shell`, `Any · Reaction`, `Before a friendly Ground Armour roll: DODGE (2).`]] },
+    { id:'observer', race:'protoss', name:`Observer`, gas:25, res:1, unique:1, slots:{ support:1 },
+      abilities:[
+        [`Surveillance`, `Movement · Active`, `Faction Indicator anywhere; enemies within 6″ of it lose HIDDEN.`],
+        [`Gravitic Boosters`, `Assault · Reaction`, `After a friendly Charge roll: +1″ Charge distance.`],
+      ] },
+    { id:'robotics', race:'protoss', name:`Robotics Facility`, gas:35, res:1, slots:{ elite:2 },
+      abilities:[[`Plasma Shields`, `Any · Reaction`, `Before a friendly Mechanical Ground Armour roll while SHIELDED: TOUGH (1) and DODGE (1).`]] },
+    { id:'voidseeker', race:'protoss', name:`Void Seeker`, gas:40, res:1, unique:1, tags:['PROTOSS', 'NERAZIM'], slots:{ core:1 },
+      abilities:[
+        [`Personal Transport`, `Movement · Active`, `Instead of an action, the active unengaged Ground unit returns to Reserves, then Deploys.`],
+        [`Anakh Su'n`, `Movement · Active`, `The active unit is HIDDEN until it performs another action.`],
+      ] },
+    { id:'archives', race:'protoss', name:`Templar Archives`, gas:40, res:1, unique:1, slots:{ support:2 },
+      abilities:[[`Ancestral Wisdom`, `Any · Reaction · once per Round`, `A friendly Support unit's PE ability costs 1 less. This card isn't Exhausted by it.`]] },
+  ],
+
+  // ──────────────────────────────── UNITS ────────────────────────────────
+  units: [
+    // ═════ TERRAN ═════
+    { id:'marine', race:'terran', name:`Marine`, slot:'core', role:`Damage Dealer`, base:`32mm`,
+      tags:['TERRAN'], ctags:`Biological, Light, Ground`,
+      stats:{ spd:`4″/7″`, arm:`5+`, eva:`5+`, hp:2, size:2 }, supply:`1–3 → 0 · 4–6 → 1 · 7–9 → 2`,
+      sizes:[[6,170,1],[9,220,2]],
+      weapons:[
+        `C-14 Rifle | 12″ | All | 2 | 3+ | Light | D3 | 1 | –`,
+        `Strike | E | Ground | 1 | 5+ | – | – | 1 | –`,
+      ],
+      abilities:[[`Stimpack`, `Movement · Active · 1 CP`, `Take NON-LETHAL DAMAGE (2), gain BUFF Speed (3); C-14 and melee weapons gain PRECISION (3).`]],
+      upgrades:[
+        { n:`Combat Shield`, c:[20,30], t:`Movement · Active · 1 CP`, d:`The unit can Evade close combat attacks and Damage from enemy abilities.` },
+        { n:`AGG-12`, c:10, sp:1, rep:`C-14 Rifle`, w:`AGG-12 | 12″ | Ground | 2 | 3+ | Armoured | D3 | 1 | LONG RANGE (18″), SPECIALIST` },
+        { n:`Rocket Launcher`, c:40, sp:1, w:`Rocket Launcher | 12″ | Ground | 4 | 3+ | – | – | 1 | INDIRECT FIRE, LONG RANGE (18″), SIDEARM, SPECIALIST` },
+        { n:`Slugthrower`, c:[10,20], t:`Passive`, d:`C-14 gains ANTI-EVADE (1) against targets within 8″.`, fx:[{ w:`C-14 Rifle`, kw:`ANTI-EVADE (1) within 8″` }] },
+        { n:`Grenades – Frag`, c:10, t:`Passive`, d:`C-14 uses a D6 S Dice against targets within 8″.`, fx:[{ w:`C-14 Rifle`, kw:`S Dice D6 within 8″` }] },
+        { n:`Bayonet`, c:[20,30], rep:`Strike`, w:`Bayonet | E | Ground | 2 | 5+ | – | – | 1 | –` },
+      ] },
+
+    { id:'raider', race:'terran', name:`Raynor's Raider`, plural:`Raynor's Raiders`, slot:'core', role:`Damage Dealer`, base:`32mm`,
+      tags:['TERRAN', `RAYNOR'S RAIDERS`], ctags:`Biological, Light, Ground`,
+      stats:{ spd:`4″/7″`, arm:`5+`, eva:`5+`, hp:2, size:2 }, supply:`1–6 → 1`,
+      sizes:[[6,230,1]],
+      weapons:[
+        `C-14 Rifle | 12″ | All | 2 | 3+ | Light | D3 | 1 | –`,
+        `Bayonet | E | Ground | 2 | 5+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Stimpack`, `Movement · Active · 1 CP`, `Take NON-LETHAL DAMAGE (2), gain BUFF Speed (3); C-14 and melee weapons gain PRECISION (3).`],
+        [`Raiders Roll!`, `Passive`, `When deploying from Reserves it may Stimpack for 1 CP less (min 0).`],
+        [`Rapid Reinforcements`, `Passive`, `When deploying from Reserves it may PLACE (10) from another friendly unit (not a Structure), no model within 8″ of enemies; activation ends.`],
+        [`Slugthrower`, `Passive`, `C-14 gains ANTI-EVADE (1) within 8″.`],
+        [`Grenades – Frag`, `Passive`, `C-14 uses a D6 S Dice within 8″.`],
+      ] },
+
+    { id:'marauder', race:'terran', name:`Marauder`, slot:'core', role:`Tank`, base:`50mm`,
+      tags:['TERRAN'], ctags:`Armoured, Biological, Ground`,
+      stats:{ spd:`4″/7″`, arm:`4+`, eva:`6+`, hp:5, size:2 }, supply:`1 → 0 · 2 → 1 · 3–4 → 2`,
+      sizes:[[2,160,1],[4,290,2]],
+      weapons:[
+        `Quad K12 | 12″ | Ground | 3 | 3+ | Armoured | D3 | 1 | PIERCE Armoured (2)`,
+        `Strike | E | Ground | 2 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Stimpack`, `Movement · Active · 1 CP`, `Take NON-LETHAL DAMAGE (2), gain BUFF Speed (3); Quad K12 and melee weapons gain PRECISION (2).`],
+        [`Concussive Shells`, `Assault · Reaction · 1 CP`, `When an enemy declares a Charge on a friendly unit within 8″, it gets DEBUFF Speed (2). LoS needed only to the charged unit.`],
+      ],
+      upgrades:[
+        { n:`Veteran of Tarsonis`, c:[20,40], t:`Passive`, d:`Armour improves by 1 while within 3″ of a Mission Marker.` },
+        { n:`Kinetic Foam`, c:[20,40], t:`Passive`, d:`+1 Hit Points.`, fx:[{ stat:'hp', add:1 }] },
+        { n:`Laser Targeting Systems`, c:[20,40], t:`Passive`, d:`Quad K12 gains LONG RANGE (16″).`, fx:[{ w:`Quad K12`, kw:`LONG RANGE (16″)` }] },
+      ] },
+
+    { id:'specops', race:'terran', name:`Spec Ops Marauder`, slot:'core', role:`Damage Dealer`, base:`50mm`,
+      tags:['TERRAN', 'NOVA COVERT OPS'], ctags:`Armoured, Biological, Ground`,
+      stats:{ spd:`4″/7″`, arm:`4+`, eva:`6+`, hp:5, size:2 }, supply:`1 → 0 · 2 → 1`,
+      sizes:[[2,230,1]],
+      weapons:[
+        `Quad K12 | 12″ | Ground | 3 | 3+ | Armoured | D3 | 1 | LONG RANGE (16″), PIERCE Armoured (2)`,
+        `Strike | E | Ground | 3 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Spec Ops Armour`, `Any · Active · 1 CP`, `HIDDEN until it performs another action.`],
+        [`Commando Stimpack`, `Movement · Active · 1 CP`, `BUFF Speed (3); Quad K12 and melee weapons gain PRECISION (2). No self-damage.`],
+        [`Magrail Munitions`, `Passive`, `Its first Quad K12 attack of the game has PIERCE Armoured (3).`],
+        [`Suppression Shells`, `Reaction · 1 CP`, `When an enemy declares a Charge on a friendly unit within 8″, it gets DEBUFF Speed (3).`],
+      ] },
+
+    { id:'medic', race:'terran', name:`Medic`, slot:'support', role:`Lifesaver`, base:`32mm`,
+      tags:['TERRAN'], ctags:`Biological, Light, Ground`,
+      stats:{ spd:`4″/7″`, arm:`5+`, eva:`5+`, hp:2, size:2 }, supply:`1 → 0 · 2–3 → 1`,
+      sizes:[[3,120,1]],
+      weapons:[`Strike | E | Ground | 1 | 5+ | – | – | 1 | –`],
+      abilities:[
+        [`Life Support`, `Any · Reaction · 1 CP`, `A friendly Biological unit within 4″ takes Damage: reduce its Total Damage by 1 per Medic within 4″ of it.`],
+        [`Restoration`, `Any · Reaction · 1 CP`, `A friendly unit within 4″ receives a DEBUFF: clear all its DEBUFFS.`],
+        [`Medpack`, `Movement · Active · 1 CP`, `Another friendly Biological unit within 4″ HEALs (X), X = Medics within 4″ of it.`],
+        [`Optical Flare`, `Movement · Active · 2 CP`, `An enemy within 12″ gets DEBUFF Range (4) on ranged weapons and can't use LONG RANGE until End of Round.`],
+      ],
+      upgrades:[
+        { n:`Advanced Medic Facilities`, c:60, t:`Passive`, d:`The unit counts as 0 Supply for the Supply Pool (it still uses its Army Slot).`, fx:[{ pool0:1 }] },
+        { n:`Stabilizer Medpacks`, c:20, t:`Passive`, d:`Life Support and Medpack count one extra Medic in range.` },
+        { n:`A-13 Flash Grenade Launcher`, c:20, t:`Passive`, d:`Optical Flare reaches 16″.` },
+      ] },
+
+    { id:'goliath', race:'terran', name:`Goliath`, slot:'elite', role:`Damage Dealer`, base:`80mm`,
+      tags:['TERRAN'], ctags:`Armoured, Mechanical, Ground`,
+      stats:{ spd:`7″`, arm:`4+`, eva:`–`, hp:10, size:3 }, supply:`1 → 2`,
+      sizes:[[1,180,2]],
+      weapons:[
+        `Autocannon | 12″ | Ground | 9 | 4+ | – | – | 1 | LONG RANGE (18″)`,
+        `Underbelly Machine Gun | 8″ | Ground | 6 | 3+ | Light | D3 | 1 | PINPOINT, SIDEARM`,
+        `Hellfire Missiles | 16″ | Flying | 6 | 3+ | Light | D3 | 1 | ANTI-EVADE (1), SIDEARM`,
+        `Stomp | E | Ground | 4 | 5+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Target Lock`, `Movement · Active · 1 CP`, `Mark an enemy within 12″: friendly Goliath Autocannons attacking it get Surge Light & Armoured and S Dice D3+1.`],
+        [`Indomitable`, `Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (4) 3+.`],
+      ],
+      upgrades:[
+        { n:`Ares-Class Targeting System`, c:20, t:`Passive`, d:`Autocannon and Underbelly MG gain PRECISION (1).`, fx:[{ w:[`Autocannon`, `Underbelly Machine Gun`], kw:`PRECISION (1)` }] },
+        { n:`Scatter Missiles`, c:30, rep:`Hellfire Missiles`, w:`Scatter Missiles | 18″ | Ground | 6 | 5+ | Light | D3 | 1 | INDIRECT FIRE, LOCKED IN (6), LONG RANGE (24″), SIDEARM` },
+        { n:`Haywire Missiles`, c:40, rep:`Hellfire Missiles`, w:`Haywire Missiles | 12″ | Ground | 3 | 3+ | Armoured | D3 | 1 | PIERCE Armoured (3), SIDEARM` },
+      ] },
+
+    { id:'siegetank', race:'terran', name:`Siege Tank`, slot:'elite', role:`Damage Dealer`, base:`150mm`,
+      tags:['TERRAN'], ctags:`Armoured, Mechanical, Ground`,
+      stats:{ spd:`7″`, arm:`5+`, eva:`–`, hp:14, size:`2 (3 sieged)` }, supply:`1 → 2`,
+      sizes:[[1,220,2]],
+      weapons:[
+        `Twin Cannon | 12″ | Ground | 8 | 3+ | Armoured | D6 | 1 | PIERCE Armoured (2)`,
+        `Shock Cannon | 18″ | Ground | BT+4 | 4+ | Light, Armoured | BT | 1 | SIEGE MODE only`,
+        `Rolling Over | E | Ground | 2 | 2+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Large`, `Passive`, `Needs 3″ gaps. Driving through or ending on Size 0–1 impassable terrain removes that piece.`],
+        [`Heavy Plating`, `Passive`, `TOUGH (1) on Armour rolls while not in SIEGE MODE.`],
+        [`Indomitable`, `Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
+        [`Aftershock Rounds`, `Passive`, `In SIEGE MODE, Damage equals the target's Size (min 1).`],
+        [`Point Blank`, `Passive`, `In SIEGE MODE it can't target units it is Engaged with.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (4) 3+.`],
+      ],
+      upgrades:[
+        { n:`Mode Transformation`, c:20, t:`Movement · Active · 1 CP`, d:`Enter or leave SIEGE MODE (Size 3 while sieged). Without this the tank can't siege at all.` },
+        { n:`Coordinated Strike`, c:20, t:`Movement · Active · 0 CP`, d:`Pick a friendly unengaged unit (no LoS): this Round the Shock Cannon may hit an enemy within 8″ of and visible to it, ignoring Range.` },
+        { n:`Shaped Blast`, c:10, t:`Assault · Reaction · 0 CP · Once per Game`, d:`A sieged ranged attack gains PINPOINT and LOCKED IN (4).` },
+        { n:`Smart Shells`, c:10, t:`Assault · Reaction · 0 CP · Once per Game`, d:`A sieged ranged attack gains INDIRECT FIRE and LONG RANGE (24″).` },
+      ] },
+
+    { id:'raven', race:'terran', name:`Raven`, slot:'support', role:`Tactician`, base:`flight stand`,
+      tags:['TERRAN'], ctags:`Light, Mechanical, Flying`,
+      stats:{ spd:`7″`, arm:`5+`, eva:`6+`, hp:8, size:`–` }, supply:`1 → 1`,
+      sizes:[[1,170,1]], summons:['autoturret'],
+      weapons:[`Railguns | 12″ | Ground | 4 | 3+ | – | – | 1 | –`],
+      abilities:[
+        [`Detection`, `Passive`, `Enemies within 6″ lose HIDDEN.`],
+        [`Deploy Auto-Turret`, `Movement · Active · 1 CP`, `Set an Auto-Turret within 6″, outside enemy Engagement Range.`],
+        [`Anti-Armour Missile`, `Movement · Active · 1 CP`, `An enemy within 12″ gets DEBUFF Armour (1).`],
+      ],
+      upgrades:[
+        { n:`Corvid Reactor`, c:30, t:`Passive`, d:`Its first Special Ability costs 1 CP less if it targets the closest enemy unit.` },
+        { n:`Internal Tech Module`, c:20, t:`Passive`, d:`May Deploy from any non-Entry table edge, not within 8″ of enemies.` },
+        { n:`Seeker Missile`, c:20, t:`Movement · Active · 1 CP`, d:`Enemy within 12″: at end of the Assault Phase, if Stationary or within 8″ of the Raven, it takes HITS 4 (2) (may Evade if Engaged).` },
+        { n:`Explosive Shrapnel Shells`, c:10, t:`Passive`, d:`Auto-Turret Gauss Cannon gets Surge Light and S Dice D3+1.` },
+      ] },
+
+    { id:'raynor', race:'terran', name:`Jim Raynor`, slot:'hero', role:`Tactician`, base:`40mm`, unique:1,
+      tags:['TERRAN'], ctags:`Biological, Ground`,
+      stats:{ spd:`7″`, arm:`4+`, eva:`5+`, hp:8, size:2 }, supply:`1 → 1`,
+      sizes:[[1,280,1]],
+      weapons:[
+        `Commando Rifle | 18″ | All | 3 | 3+ | Armoured | D3 | 1 | BULKY, PIERCE Armoured (3)`,
+        `"Justice" Revolver | 6″ | Ground | 2 | 3+ | – | – | 2 | ANTI-EVADE (2), SIDEARM, PINPOINT`,
+        `Bayonet | E | Ground | 2 | 4+ | Light | D3 | 1 | –`,
+      ],
+      abilities:[
+        [`Commander`, `Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
+        [`Freedom Fighters`, `Passive`, `Friendly units within 8″ count at least 1 Supply for markers and objectives.`],
+        [`Orders`, `Movement · Active · X CP · REPEATABLE`, `Another friendly Biological unit within 8″: 1 CP — first weapon gains CRITICAL HIT (2); 1 CP — ignore the Disengage penalty this Round; 2 CP — remove its Activation Marker.`],
+      ],
+      upgrades:[
+        { n:`C-14 Rifle`, c:0, rep:`Commando Rifle`, w:`C-14 Rifle | 12″ | All | 6 | 3+ | Light | D3+1 | 1 | BURST FIRE 8″ (3)` },
+      ] },
+
+    { id:'nova-stealth', race:'terran', name:`Nova (Stealth Mode)`, slot:'hero', role:`Damage Dealer`, base:`40mm`, unique:1, excl:'nova',
+      tags:['TERRAN'], ctags:`Biological, Psionic, Ground`,
+      stats:{ spd:`7″`, arm:`5+`, eva:`5+`, hp:8, size:2 }, supply:`1 → 1`,
+      sizes:[[1,240,1]], summons:['decoy'],
+      weapons:[
+        `C-20A Canister Rifle | 12″ | All | 4 | 3+ | – | – | 2 | CRITICAL HIT (2), LONG RANGE (18″)`,
+        `Combat Knife | E | Ground | 3 | 5+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Tactical Stealth Suit`, `Passive`, `Becomes HIDDEN after fully resolving an action.`],
+        [`Ghost Visor`, `Passive`, `Enemies within 6″ lose HIDDEN.`],
+        [`Super Stimpack`, `Movement · Active · 1 CP`, `BUFF Speed (2); all weapons gain PRECISION (2).`],
+        [`Holo Decoy`, `Movement · Active · 1 CP`, `SUMMON a Holo Decoy; it may Move immediately.`],
+        [`Operational Efficiency`, `Passive`, `After a C-20A attack that destroys the target or lowers its Supply, ready one Exhausted non-Unique Tactical Card.`],
+        [`Head Shot`, `Reaction · 1 CP · Once per Game`, `Unengaged and Stationary: one C-20A attack is Damage 3 with CONCENTRATED FIRE (1).`],
+      ] },
+
+    { id:'nova-assault', race:'terran', name:`Nova (Assault Mode)`, slot:'hero', role:`Damage Dealer`, base:`40mm`, unique:1, excl:'nova',
+      tags:['TERRAN'], ctags:`Biological, Psionic, Ground`,
+      stats:{ spd:`7″`, arm:`5+`, eva:`5+`, hp:8, size:2 }, supply:`1 → 1`,
+      sizes:[[1,260,1]], summons:['decoy'],
+      weapons:[
+        `Hellfire Shotgun | 8″ | Ground | 3 | 4+ | Light | D3 | 2 | ANTI-EVADE (1), BURST FIRE 4″ (3)`,
+        `Monomolecular Blade | E | Ground | 8 | 3+ | Light, Armoured | D6 | 1 | –`,
+      ],
+      abilities:[
+        [`Ghost Visor`, `Passive`, `Enemies within 6″ lose HIDDEN.`],
+        [`Super Stimpack`, `Movement · Active · 1 CP`, `BUFF Speed (2); all weapons gain PRECISION (2).`],
+        [`Holo Decoy`, `Movement · Active · 1 CP`, `SUMMON a Holo Decoy; it may Move immediately.`],
+        [`Phase Reactor Suit`, `Assault · Active · 1 CP`, `If unengaged, PLACE (6).`],
+        [`Devastating Charge`, `Passive`, `IMPACT (4) 4+.`],
+      ] },
+
+    // Terran — summoned (free, no slot)
+    { id:'pdd', race:'terran', summoned:1, name:`Point Defense Drone`, by:`Raynor's Raiders faction card (Rapid Ingress)`, base:`32mm`,
+      tags:['TERRAN', `RAYNOR'S RAIDERS`], ctags:`Armoured, Flying, Mechanical`,
+      stats:{ spd:`–`, arm:`6+`, eva:`6+`, hp:3, size:`–` }, supply:`0`, sizes:[[1,0,0]], weapons:[],
+      abilities:[
+        [`Point Defense Laser`, `Passive`, `When another friendly unit within 4″ is targeted by a ranged attack without INSTANT, remove up to 2 attack dice, then remove the drone.`],
+        [`Structure`, `Passive`, `Can't activate or act, Supply 0, never holds markers.`],
+        [`Gliding`, `Passive`, `DISPLACEMENT.`],
+      ] },
+    { id:'decoy', race:'terran', summoned:1, name:`Holo Decoy`, by:`Nova (either mode)`, base:`32mm`,
+      tags:['TERRAN'], ctags:`Psionic, Ground`,
+      stats:{ spd:`7″`, arm:`6+`, eva:`6+`, hp:1, size:2 }, supply:`0`, sizes:[[1,0,0]], weapons:[],
+      abilities:[
+        [`Timed Life`, `Passive`, `Removed at End of Round.`],
+        [`Decoy`, `Passive`, `Never Engaged, can't Charge, can't be targeted by abilities, never contests markers.`],
+        [`Surprise!`, `Passive`, `At End of Round you may set Nova in Coherency with it.`],
+        [`Lethal Hologram`, `Passive`, `Friendly weapons targeting an enemy within 4″ of it gain PRECISION (1).`],
+      ] },
+    { id:'sabotage', race:'terran', summoned:1, name:`Sabotage Drone`, by:`Nova Covert Ops faction card (Griffin Support)`, base:`40mm`,
+      tags:['TERRAN', 'NOVA COVERT OPS'], ctags:`Armoured, Mechanical, Ground`,
+      stats:{ spd:`–`, arm:`6+`, eva:`6+`, hp:3, size:1 }, supply:`0`, sizes:[[1,0,0]], weapons:[],
+      abilities:[
+        [`Structure`, `Passive`, `Can't activate or act, Supply 0, never holds markers.`],
+        [`Have a Nice Day`, `Passive`, `End of the Assault Phase: every unit within 3″ takes HITS 5 (1); Structures take a second HITS 5 (1).`],
+      ] },
+    { id:'autoturret', race:'terran', summoned:1, name:`Auto-Turret`, by:`Raven (Deploy Auto-Turret)`, base:`40mm`,
+      tags:['TERRAN'], ctags:`Armoured, Mechanical, Ground`,
+      stats:{ spd:`–`, arm:`5+`, eva:`–`, hp:3, size:2 }, supply:`0`, sizes:[[1,0,0]],
+      weapons:[`Gauss Cannon | 8″ | All | 6 | 3+ | – | – | 1 | PINPOINT`],
+      abilities:[
+        [`Timed Life`, `Passive`, `Removed at End of Round.`],
+        [`Structure`, `Passive`, `Can't activate, Supply 0, never holds markers.`],
+        [`Overwatch`, `Reaction · 0 CP`, `When an enemy ends its activation within 8″, shoot it.`],
+      ] },
+
+    // ═════ ZERG ═════
+    { id:'zergling', race:'zerg', name:`Zergling`, slot:'core', role:`Damage Dealer`, base:`32mm`,
+      tags:['ZERG'], ctags:`Biological, Light, Ground`,
+      stats:{ spd:`4″/8″`, arm:`6+`, eva:`4+`, hp:1, size:1 }, supply:`1–6 → 0 · 7–12 → 1 · 13–18 → 2`,
+      sizes:[[12,150,1],[18,210,2]],
+      weapons:[`Claws | E | Ground | 2 | 4+ | Light | D3 | 1 | –`],
+      abilities:[
+        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model (instead of 3″).`],
+        [`Metabolic Boost`, `Assault · Active · 1 BM`, `Roll 2D6 for the Charge and keep the higher.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (1) 5+.`],
+      ],
+      upgrades:[
+        { n:`Burrow Ambush`, c:[20,30], t:`Passive`, d:BURROW_AMBUSH },
+        { n:`Shredding Claws`, c:10, rep:`Claws`, w:`Shredding Claws | E | Ground | 2 | 4+ | Light, Armoured | D3 | 1 | –` },
+        { n:`Adrenal Glands`, c:20, t:`Passive`, d:`Claws / Shredding Claws gain PRECISION (2).`, fx:[{ w:[`Claws`, `Shredding Claws`], kw:`PRECISION (2)` }] },
+      ] },
+
+    { id:'raptor', race:'zerg', name:`Raptor`, slot:'elite', role:`Damage Dealer`, base:`32mm`,
+      tags:['ZERG'], ctags:`Biological, Light, Ground`,
+      stats:{ spd:`5″/9″`, arm:`6+`, eva:`4+`, hp:1, size:1 }, supply:`1–6 → 0 · 7–12 → 1 · 13–18 → 2`,
+      sizes:[[12,210,1],[18,260,2]],
+      weapons:[`Claws | E | Ground | 2 | 4+ | Light | D3 | 1 | –`],
+      abilities:[
+        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Raptor Strain`, `Passive`, `Moves through Impassable Terrain of Size 4 or less and changes elevation without Access Points.`],
+        [`Adrenal Overload`, `Assault · Active · 1 BM`, `+1 to IMPACT hit rolls.`],
+        [`Metabolic Boost`, `Assault · Active · 1 BM`, `Roll 2D6 for the Charge and keep the higher.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (1) 5+.`],
+      ],
+      upgrades:[
+        { n:`Burrow Ambush`, c:[20,30], t:`Passive`, d:BURROW_AMBUSH },
+        { n:`Shredding Claws`, c:10, rep:`Claws`, w:`Shredding Claws | E | Ground | 2 | 4+ | Light, Armoured | D3 | 1 | –` },
+        { n:`Adrenal Glands`, c:20, t:`Passive`, d:`Claws / Shredding Claws gain PRECISION (2).`, fx:[{ w:[`Claws`, `Shredding Claws`], kw:`PRECISION (2)` }] },
+      ] },
+
+    { id:'ksraptor', race:'zerg', name:`Kerrigan Swarm Raptor`, model:`Swarm Raptor`, slot:'elite', role:`Damage Dealer`, base:`32mm`, unique:1,
+      tags:['ZERG', `KERRIGAN'S SWARM`], ctags:`Biological, Light, Ground`,
+      stats:{ spd:`5″/9″`, arm:`5+`, eva:`4+`, hp:2, size:1 }, supply:`1–3 → 0 · 4–6 → 1`,
+      sizes:[[6,230,1]],
+      weapons:[`Claws | E | Ground | 2 | 3+ | Light, Armoured | D6 | 1 | INSTANT`],
+      abilities:[
+        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Raptor Strain`, `Passive`, `Moves through Impassable Terrain of Size 4 or less and changes elevation without Access Points.`],
+        [`Leap`, `Assault · Active · 1 BM`, `+2″ Charge distance.`],
+        [`Adrenal Overload`, `Assault · Active · 1 BM`, `+1 to IMPACT hit rolls.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (2) 5+.`],
+      ] },
+
+    { id:'swarmling', race:'zerg', name:`Swarmling`, slot:'core', role:`Damage Dealer`, base:`32mm`,
+      tags:['ZERG'], ctags:`Biological, Light, Ground`,
+      stats:{ spd:`4″/8″`, arm:`6+`, eva:`5+`, hp:1, size:1 }, supply:`1–6 → 0 · 7–18 → 1`,
+      sizes:[[18,210,1]],
+      weapons:[`Claws | E | Ground | 2 | 5+ | – | – | 1 | –`],
+      abilities:[
+        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Zergling Reconstitution`, `Movement · Active · 1 BM`, `RESPAWN (2), or RESPAWN (3) if ON CREEP.`],
+        [`Metabolic Boost`, `Assault · Active · 1 BM`, `Roll 2D6 for the Charge and keep the higher.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (1) 5+.`],
+      ],
+      upgrades:[{ n:`Burrow Ambush`, c:20, t:`Passive`, d:BURROW_AMBUSH }] },
+
+    { id:'vileling', race:'zerg', name:`Vileling`, slot:'core', role:`Damage Dealer`, base:`32mm`,
+      tags:['ZERG', `ZAGARA'S SWARM`], ctags:`Biological, Light, Ground`,
+      stats:{ spd:`4″/8″`, arm:`6+`, eva:`5+`, hp:1, size:1 }, supply:`1–6 → 1 · 7–18 → 2`,
+      sizes:[[18,180,2]],
+      weapons:[`Claws | E | Ground | 2 | 5+ | – | – | 1 | –`],
+      abilities:[
+        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Zergling Reconstitution`, `Movement · Active · 1 BM`, `RESPAWN (2), or RESPAWN (3) if ON CREEP.`],
+        [`Burrow Ambush`, `Passive`, BURROW_AMBUSH],
+        [`Metabolic Boost`, `Assault · Active · 1 BM`, `Roll 2D6 for the Charge and keep the higher.`],
+        [`Debilitating Claws`, `Passive`, `An enemy unit damaged by this unit gets DEBUFF Hit (1) on each of its weapons.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (1) 5+.`],
+      ] },
+
+    { id:'roach', race:'zerg', name:`Roach`, plural:`Roaches`, slot:'core', role:`Tank`, base:`50mm`,
+      tags:['ZERG'], ctags:`Armoured, Biological, Ground`,
+      stats:{ spd:`4″/7″`, arm:`3+`, eva:`5+`, hp:4, size:2 }, supply:`1 → 0 · 2–3 → 1`,
+      sizes:[[3,170,1]],
+      weapons:[
+        `Acid Saliva | 8″ | Ground | 3 | 3+ | – | – | 1 | –`,
+        `Claws | E | Ground | 2 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[...ROACH_ABILITIES, [`Devastating Charge`, `Passive`, `IMPACT (2) 4+.`]],
+      upgrades:ROACH_UPGRADES },
+
+    { id:'vile', race:'zerg', name:`Vile`, slot:'core', role:`Tank`, base:`50mm`,
+      tags:['ZERG'], ctags:`Armoured, Biological, Ground`,
+      stats:{ spd:`4″/7″`, arm:`3+`, eva:`5+`, hp:4, size:2 }, supply:`1 → 0 · 2–3 → 1`,
+      sizes:[[3,190,1]],
+      weapons:[
+        `Acid Saliva | 8″ | Ground | 4 | 3+ | – | – | 1 | –`,
+        `Vile Claws | E | Ground | 2 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[...ROACH_ABILITIES,
+        [`Debilitating Saliva`, `Reaction · 1 BM`, `When an enemy within 8″ declares a ranged attack, its ranged weapons get DEBUFF Hit (1).`],
+        [`Devastating Charge`, `Passive`, `IMPACT (1) 4+.`]],
+      upgrades:ROACH_UPGRADES },
+
+    { id:'corpser', race:'zerg', name:`Corpser`, slot:'core', role:`Tank`, base:`50mm`,
+      tags:['ZERG'], ctags:`Armoured, Biological, Ground`,
+      stats:{ spd:`4″/7″`, arm:`3+`, eva:`5+`, hp:4, size:2 }, supply:`1 → 0 · 2–3 → 1`,
+      sizes:[[3,220,1]], summons:['roachling'],
+      weapons:[
+        `Acid Saliva | 8″ | Ground | 2 | 3+ | – | – | 1 | –`,
+        `Claws | E | Ground | 3 | 4+ | Light | D3+1 | 1 | –`,
+      ],
+      abilities:[...ROACH_ABILITIES,
+        [`Roachling Infestation`, `Movement · Active · 2 BM · Once per Game`, `SUMMON a Roachling unit.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (3) 4+.`]],
+      upgrades:ROACH_UPGRADES },
+
+    { id:'ravager', race:'zerg', name:`Ravager`, slot:'core', role:`Tactician`, base:`80mm`,
+      tags:['ZERG'], ctags:`Armoured, Biological, Ground`,
+      stats:{ spd:`4″/8″`, arm:`5+`, eva:`5+`, hp:9, size:3 }, supply:`1 → 1 · 2 → 2`,
+      sizes:[[1,160,1],[2,270,2]],
+      weapons:[
+        `Plasma Discharge | 12″ | Ground | 4 | 3+ | Light | D3+1 | 1 | –`,
+        `Claws | E | Ground | 2 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Deep Tunnel`, `Movement · Active · 1 BM`, `Set a burrow token within 12″ of a model; at End of Round you may re-set the unit around it. Token has DISPLACEMENT.`],
+        [`Corrosive Bile`, `Movement · Active · 1 BM`, `Each model sets a bile token within 14″. End of the Assault Phase: each unit within 1″ of a token takes HITS 5 (1) per token.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (2) 4+.`],
+      ],
+      upgrades:[
+        { n:`Bloated Bile Ducts`, c:[20,40], t:`Passive`, d:`Corrosive Bile reaches 2″ instead of 1″.` },
+        { n:`Burrow Ambush`, c:[20,40], t:`Passive`, d:BURROW_AMBUSH },
+        { n:`Potent Bile`, c:[20,40], t:`Passive`, d:`Enemies hit by Corrosive Bile get DEBUFF Armour (1) before rolling Armour.` },
+      ] },
+
+    { id:'hydralisk', race:'zerg', name:`Hydralisk`, slot:'elite', role:`Damage Dealer`, base:`40×100mm oval`,
+      tags:['ZERG'], ctags:`Biological, Light, Ground`,
+      stats:{ spd:`4″/8″`, arm:`5+`, eva:`5+`, hp:4, size:2 }, supply:`1 → 1 · 2 → 2 · 3–4 → 3`,
+      sizes:[[2,140,2],[4,260,3]],
+      weapons:[
+        `Needle Spines | 12″ | All | 3 | 3+ | Light, Armoured | D3+1 | 2 | –`,
+        `Scythe | E | Ground | 2 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Lunge`, `Reaction · 1 BM`, `After another friendly unit within 10″ is shot, this unit (if unengaged) may Move directly towards the shooter.`],
+      ],
+      upgrades:[
+        { n:`Ancillary Carapace`, c:[20,30], t:`Passive`, d:`TOUGH (1) on the first Armour roll of each activation.` },
+        { n:`Lurking`, c:10, t:`Passive`, d:`If Stationary, may Evade the first ranged attack on it each Round (+1 ON CREEP).` },
+        { n:`Burrow Ambush`, c:[20,40], t:`Passive`, d:BURROW_AMBUSH },
+        { n:`Grooved Spines`, c:[20,30], t:`Passive`, d:`Needle Spines gain LONG RANGE (16″).`, fx:[{ w:`Needle Spines`, kw:`LONG RANGE (16″)` }] },
+      ] },
+
+    { id:'queen', race:'zerg', name:`Queen`, slot:'support', role:`Lifesaver`, base:`80mm`,
+      tags:['ZERG'], ctags:`Armoured, Biological, Psionic, Ground`,
+      stats:{ spd:`4″`, arm:`4+`, eva:`–`, hp:9, size:3 }, supply:`1 → 1`,
+      sizes:[[1,140,1]],
+      weapons:[
+        `Talons | 6″ | Ground | 4 | 4+ | Light | D3 | 2 | –`,
+        `Acid Spines | 12″ | Flying | 4 | 4+ | Light, Armoured | D3 | 2 | –`,
+        `Talons | E | Ground | 3 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Spawn Creep Tumor`, `Any · Active · 1 BM`, `Set a Creep Tumor touching its base.`],
+        [`Transfusion`, `Reaction · 1 BM`, `Another friendly Biological unit within 4″ takes Damage: reduce its Total Damage by 2.`],
+        [`Restoration`, `Reaction · 1 BM`, `A friendly unit within 4″ receives a DEBUFF: clear all its DEBUFFS.`],
+        [`Psionic Link`, `Passive · once per Round`, `With 7+ friendly models within 6″, a Special Ability costs 1 BM less.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (4) 3+.`],
+      ],
+      upgrades:[
+        { n:`Creep Speed`, c:10, t:`Passive`, d:`+2 Speed while ON CREEP.` },
+        { n:`Domineering Presence`, c:10, t:`Movement · Active · 1 BM`, d:`Another friendly unit within 6″ (no LoS) counts +1 Supply for markers and objectives.` },
+      ] },
+
+    { id:'defiler', race:'zerg', name:`Defiler`, slot:'support', role:`Lifesaver`, base:`80mm`,
+      tags:['ZERG'], ctags:`Biological, Light, Psionic, Ground`,
+      stats:{ spd:`7″`, arm:`5+`, eva:`5+`, hp:8, size:2 }, supply:`1 → 1`,
+      sizes:[[1,130,1]],
+      weapons:[`Claws | E | Ground | 4 | 3+ | – | – | 1 | –`],
+      abilities:[
+        [`Consume`, `Passive`, `When paying for a BM ability, may remove a model from a friendly unit within 4″ to pay 1 BM.`],
+        [`Gestate Dark Swarm`, `Movement · Active · 0 BM`, `Set a Dark Swarm token in empty space within 4″ and LoS (DISPLACEMENT).`],
+        [`Dark Swarm`, `Assault · Reaction · 1 BM · REPEATABLE`, `A friendly unit within 4″ of the token is attacked while the Defiler is also within 4″ of it: the target may Evade (+1 if Size 1).`],
+        [`Devastating Charge`, `Passive`, `IMPACT (4) 4+.`],
+      ],
+      upgrades:[
+        { n:`Burrow Ambush`, c:20, t:`Passive`, d:BURROW_AMBUSH },
+        { n:`Plague`, c:20, t:`Assault · Active · 1–3 BM`, d:`Blast Template within 10″ and LoS: each covered unit rolls 2 dice + 1 per covered model, loses HIDDEN, and takes NON-LETHAL DAMAGE (1) per 5+ / 4+ / 3+ (1 / 2 / 3 BM).` },
+        { n:`Cancerous Bite`, c:20, w:`Cancerous Bite | E | Ground | 2 | 3+ | – | – | 2 | CRITICAL HIT (1), SIDEARM` },
+      ] },
+
+    { id:'bilelauncher', race:'zerg', name:`Bile Launcher`, slot:'support', role:`Damage Dealer`, base:`100mm`, unique:1,
+      tags:['ZERG'], ctags:`Armoured, Biological, Ground`,
+      stats:{ spd:`–`, arm:`4+`, eva:`–`, hp:10, size:3 }, supply:`1 → 1`,
+      sizes:[[1,150,1]],
+      weapons:[`Bile Bomb | 12″ | Ground | 6 | 3+ | Light, Armoured | D3 | 1 | PIERCE Armoured (2), PINPOINT`],
+      abilities:[
+        [`Biological Structure`, `Passive`, `Can't BURROW or return to Reserves; immune to IMPACT. Never moves.`],
+        [`Burrow Ambush`, `Passive`, `Built in — this is how it arrives. ` + BURROW_AMBUSH],
+        [`Detection`, `Passive`, `Enemies within 6″ lose HIDDEN.`],
+        [`Source of Creep`, `Passive`, `Ground Zerg units within 6″ are ON CREEP.`],
+        [`Indomitable`, `Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
+        [`Bombard`, `Movement · Active · 1 BM`, `Set a token within 24″: this Round the Bile Bomb may hit an enemy within 3″ of it ignoring Range, LoS and HIDDEN; the token then becomes a Creep Tumor.`],
+      ] },
+
+    { id:'kerrigan', race:'zerg', name:`Kerrigan`, slot:'hero', role:`Damage Dealer`, base:`40mm`, unique:1,
+      tags:['ZERG'], ctags:`Biological, Psionic, Ground`,
+      stats:{ spd:`7″`, arm:`5+`, eva:`6+`, hp:9, size:2 }, supply:`1 → 1`,
+      sizes:[[1,250,1]],
+      weapons:[
+        `Energy Blast | 8″ | All | 5 | 3+ | Light, Armoured | D3 | 1 | –`,
+        `Blades | E | Ground | 6 | 4+ | – | – | 2 | CRITICAL HIT (2)`,
+      ],
+      abilities:[
+        [`Commander`, `Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
+        [`Crushing Grip`, `Movement · Active · 1 BM`, `An enemy unit within 12″ counts as Activated this Phase.`],
+        [`Mutating Carapace`, `Movement · Active · 1 BM`, `Pick an enemy within 18″: Kerrigan may Evade its attacks with +2.`],
+        [`Leaping Strike`, `Assault · Active · 1 BM`, `If unengaged, PLACE (6) — in the Assault Phase it may end Engaged.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (4) 4+.`],
+      ] },
+
+    { id:'zagara', race:'zerg', name:`Zagara`, slot:'hero', role:`Tactician`, base:`100mm`, unique:1,
+      tags:['ZERG'], ctags:`Biological, Psionic, Ground`,
+      stats:{ spd:`7″`, arm:`4+`, eva:`6+`, hp:10, size:3 }, supply:`1 → 1`,
+      sizes:[[1,250,1]],
+      weapons:[
+        `Zagara's Talons | 8″ | Ground | 4 | 3+ | Light, Armoured | D3 | 2 | –`,
+        `Zagara's Acid Spines | 14″ | Flying | 8 | 3+ | Light, Armoured | D3 | 1 | –`,
+        `Talons | E | Ground | 4 | 3+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Commander`, `Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
+        [`Transfusion`, `Reaction · 1 BM`, `Another friendly Biological unit within 4″ takes Damage: reduce its Total Damage by 2.`],
+        [`Psionic Link`, `Passive · once per Round`, `With 7+ friendly models within 6″, a Special Ability costs 1 BM less.`],
+        [`Indomitable`, `Passive`, `While Engaged she can shoot and be shot by unengaged enemies; the defender may Evade.`],
+        [`Infested Drop`, `Passive`, `Her base is an Entry Edge: each Round, friendly units totalling 1 Supply may Deploy through it.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (6) 3+.`],
+        [`Broodmother`, `Movement · Active · 1 BM`, `Pick one for all friendly units (not last Round's pick): Size 1 → +1 to IMPACT rolls · Size 2 → weapons gain CRITICAL HIT (1) · Size 3+ → TOUGH (1).`,
+          `Printed as an upgrade, but the Oct 2026 cost table lists no price — treated as built-in.`],
+      ] },
+
+    // Zerg — summoned
+    { id:'omega', race:'zerg', summoned:1, name:`Omega Worm`, by:`Kerrigan's Swarm faction card (Omega Network)`, base:`80mm`,
+      tags:['ZERG', `KERRIGAN'S SWARM`], ctags:`Armoured, Biological, Ground`,
+      stats:{ spd:`–`, arm:`5+`, eva:`–`, hp:10, size:3 }, supply:`0`, sizes:[[1,0,0]], weapons:[],
+      abilities:[
+        [`Detection`, `Passive`, `Enemies within 6″ lose HIDDEN.`],
+        [`Source of Creep`, `Passive`, `Ground Zerg units within 6″ are ON CREEP.`],
+        [`Structure`, `Passive`, `Can't activate or act, Supply 0, never holds markers.`],
+        [`Omega Network`, `Passive`, `Its base is an Entry Edge for friendly units totalling up to 2 Supply per Round; a friendly unit ending a move touching it may return to Reserves.`],
+      ] },
+    { id:'roachling', race:'zerg', summoned:1, name:`Roachling`, by:`Corpser (Roachling Infestation)`, base:`32mm`,
+      tags:['ZERG'], ctags:`Biological, Light, Ground`,
+      stats:{ spd:`4″/7″`, arm:`6+`, eva:`6+`, hp:1, size:1 }, supply:`1–3 → 0`, sizes:[[3,0,0]],
+      weapons:[`Claws | E | Ground | 2 | 4+ | – | – | 1 | –`],
+      abilities:[[`Underdeveloped Claws`, `Passive`, `Can't BURROW.`]] },
+
+    // ═════ PROTOSS ═════
+    { id:'zealot', race:'protoss', name:`Zealot`, slot:'core', role:`Damage Dealer`, base:`40mm`,
+      tags:['PROTOSS'], ctags:`Biological, Light, Ground`,
+      stats:{ sh:3, spd:`4″/7″`, arm:`5+`, eva:`5+`, hp:4, size:2 }, supply:`1 → 1 · 2–3 → 2`,
+      sizes:[[3,170,2]],
+      weapons:[`Psi Blades | E | Ground | 4 | 3+ | Light | D3 | 1 | –`],
+      abilities:[
+        [`Charge`, `Assault · Active · 1 PE`, `Roll 2D6 for the Charge and keep the higher.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (3) 4+.`],
+      ],
+      upgrades:[
+        { n:`My Life for Aiur`, c:10, t:`Passive`, d:`Each eligible model rolls one extra IMPACT die.` },
+        { n:`Leg Enhancements`, c:20, t:`Movement · Active · 1 PE`, d:`A free 2″ Move (doesn't count towards its action).` },
+        { n:`Zealous Round`, c:10, t:`Assault · Reaction · 0 PE`, d:`If not yet activated when it receives Damage, count it as activated this Phase to reduce Total Damage by 2.` },
+        { n:`We Stand as One`, c:20, t:`Combat · Passive`, d:`Psi Blades gain PRECISION (2) if the target is also Engaged with another friendly unit.` },
+      ] },
+
+    { id:'praetor', race:'protoss', name:`Praetor Guard`, plural:`Praetor Guard`, slot:'elite', role:`Damage Dealer`, base:`40mm`, unique:1,
+      tags:['PROTOSS', 'KHALAI'], ctags:`Biological, Light, Ground`,
+      stats:{ sh:3, spd:`4″/7″`, arm:`5+`, eva:`5+`, hp:4, size:2 }, supply:`1 → 1 · 2–3 → 2`,
+      sizes:[[3,260,2]],
+      weapons:[`Psi Blades | E | Ground | 4 | 3+ | Light | D3 | 1 | –`],
+      abilities:[
+        [`Shield Overcharge`, `Passive`, `TOUGH (2) on the first Armour roll each Round.`],
+        [`Leg Enhancements`, `Movement · Active · 1 PE`, `A free 2″ Move.`],
+        [`Charge`, `Assault · Active · 1 PE`, `Roll 2D6 for the Charge and keep the higher.`],
+        [`Titan Killers`, `Passive`, `Close combat attacks against Size 3+ targets have Damage 2.`],
+        [`Precognition`, `Passive`, `May Evade every attack.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (3) 4+.`],
+      ] },
+
+    { id:'adept', race:'protoss', name:`Adept`, slot:'core', role:`Damage Dealer`, base:`40mm`,
+      tags:['PROTOSS'], ctags:`Biological, Light, Ground`,
+      stats:{ sh:2, spd:`5″/8″`, arm:`5+`, eva:`5+`, hp:3, size:2 }, supply:`1–2 → 0 · 3–4 → 1`,
+      sizes:[[4,160,1]],
+      weapons:[
+        `Glaive Cannon | 8″ | All | 2 | 3+ | Light | D3+1 | 1 | ANTI-EVADE (1)`,
+        `Strike | E | Ground | 1 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Psionic Presence`, `Passive`, `Friendly weapons targeting an enemy within 4″ of its Shade token gain PRECISION (1).`],
+        [`Psionic Transfer`, `Movement · Active · 1 PE`, `Set a Shade token within 12″; at End of Round you may re-set the unit around it. Not a PLACE, so it can end Engaged.`],
+      ],
+      upgrades:[
+        { n:`Resonating Glaives`, c:20, t:`Assault · Active · 1 PE`, d:`Glaive Cannon gets BUFF RoA (1).` },
+        { n:`Guidance`, c:10, t:`Passive`, d:`Glaive Cannon gains ANTI-EVADE (2).`, fx:[{ w:`Glaive Cannon`, kw:`ANTI-EVADE (2)` }] },
+        { n:`Glaive Strike`, c:20, rep:`Strike`, w:`Glaive Strike | E | Ground | 1 | 4+ | Light | D3 | 1 | PIERCE Light (2)` },
+      ] },
+
+    { id:'watchers', race:'protoss', name:`Nerazim Watchers`, plural:`Nerazim Watchers`, model:`Watcher`, slot:'core', role:`Damage Dealer`, base:`40mm`,
+      tags:['PROTOSS', 'NERAZIM'], ctags:`Biological, Light, Ground`,
+      stats:{ sh:2, spd:`5″/8″`, arm:`5+`, eva:`5+`, hp:3, size:2 }, supply:`1–2 → 0 · 3–4 → 1`,
+      sizes:[[4,210,1]],
+      weapons:[
+        `Glaive Cannon | 8″ | All | 3 | 3+ | Light | D3+1 | 1 | ANTI-EVADE (1), PINPOINT`,
+        `Strike | E | Ground | 1 | 5+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Path of Shadows`, `Any · Active · 1 PE`, `HIDDEN until it performs another action.`],
+        [`Nerazim Farsight`, `Passive`, `Enemies within 6″ of its Shade token lose HIDDEN.`],
+        [`Psionic Transfer`, `Movement · Active · 1 PE`, `Set a Shade token within 12″; at End of Round you may re-set the unit around it.`],
+      ] },
+
+    { id:'stalker', race:'protoss', name:`Stalker`, slot:'elite', role:`Damage Dealer`, base:`80mm`,
+      tags:['PROTOSS'], ctags:`Armoured, Mechanical, Ground`,
+      stats:{ sh:3, spd:`4″/8″`, arm:`4+`, eva:`6+`, hp:6, size:3 }, supply:`1 → 1 · 2 → 2`,
+      sizes:[[1,160,1],[2,270,2]],
+      weapons:[
+        `Particle Disruptors | 12″ | All | 4 | 3+ | Armoured | D3 | 2 | –`,
+        `Stomp | E | Ground | 2 | 5+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Blink`, `Movement · Active · 1 PE`, `PLACE (6), not into Engagement Range.`],
+      ],
+      upgrades:[
+        { n:`Path of Shadows`, c:[20,40], t:`Any · Active · 1 PE`, d:`HIDDEN until it performs another action.` },
+        { n:`Fury of the Nerazim`, c:[20,30], t:`Passive`, d:`Particle Disruptors gain INSTANT against enemies that have already activated this Phase.` },
+      ] },
+
+    { id:'immortal', race:'protoss', name:`Immortal`, slot:'elite', role:`Tank`, base:`100mm`,
+      tags:['PROTOSS'], ctags:`Armoured, Mechanical, Ground`,
+      stats:{ sh:6, spd:`7″`, arm:`4+`, eva:`–`, hp:8, size:3 }, supply:`1 → 2`,
+      sizes:[[1,280,2]],
+      weapons:[
+        `Left Photon Disruptor | 12″ | Ground | 4 | 3+ | Armoured | D3 | 2 | CONCENTRATED FIRE (1), LONG RANGE (16″)`,
+        `Right Photon Disruptor | 12″ | Ground | 4 | 3+ | Armoured | D3 | 2 | CONCENTRATED FIRE (1), LONG RANGE (16″), SIDEARM`,
+        `Stomp | E | Ground | 3 | 3+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Improved Barrier`, `Any · Reaction · 0 PE`, `When attacked while SHIELDED, the attacking weapon's Damage is capped at 1.`],
+        [`Indomitable`, `Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (4) 3+.`],
+      ],
+      upgrades:[
+        { n:`Shield Overcharge`, c:20, t:`Reaction · 1 PE`, d:`Before an Armour roll while SHIELDED: TOUGH (2).` },
+        { n:`Left Phase Disruptor`, c:20, rep:`Left Photon Disruptor`, w:`Left Phase Disruptor | 12″ | Ground | 4 | 3+ | Armoured | D3 | 1 | PIERCE Armoured (3)` },
+        { n:`Right Phase Disruptor`, c:20, rep:`Right Photon Disruptor`, w:`Right Phase Disruptor | 12″ | Ground | 4 | 3+ | Armoured | D3 | 1 | PIERCE Armoured (3), SIDEARM` },
+        { n:`Fury Unyielding`, c:20, t:`Passive`, d:`Within 3″ of a Mission Marker, ranged weapons gain CRITICAL HIT (1) against enemies also within 3″ of it.` },
+        { n:`For the Ancients`, c:20, t:`Passive`, d:`Weapons gain PRECISION (1) against targets more than 8″ away.` },
+      ] },
+
+    { id:'sentry', race:'protoss', name:`Sentry`, plural:`Sentries`, slot:'support', role:`Lifesaver`, base:`50mm`,
+      tags:['PROTOSS'], ctags:`Light, Mechanical, Psionic, Ground`,
+      stats:{ sh:2, spd:`4″/7″`, arm:`5+`, eva:`6+`, hp:4, size:1 }, supply:`1 → 0 · 2 → 1`,
+      sizes:[[2,130,1]],
+      weapons:[
+        `Disruption Beam | 8″ | All | 2 | 2+ | – | – | 1 | INSTANT`,
+        `Beam | E | Ground | 2 | 3+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Restoration`, `Any · Reaction · 1 PE`, `A friendly unit within 4″ receives a DEBUFF: clear all its DEBUFFS.`],
+        [`Guardian Shield`, `Movement · Active · 1 PE`, `Ranged attacks on a friendly unit within 4″ (no LoS) roll 1 fewer attack die. Doesn't stack with itself.`],
+        [`Force Field`, `Movement · Active · 1 PE`, `Set a Force Field token within 8″: Size ≤2 units can't cross it; a Size 3+ model crossing it removes it.`],
+      ],
+      upgrades:[
+        { n:`Solid-Field Projectors`, c:10, t:`Movement · Active · 1 PE`, d:`A second, separately named Force Field ability — so two Force Fields per Round.` },
+        { n:`Hallucination`, c:20, t:`Assault · Reaction · 0 PE`, d:`When an enemy declares a ranged attack on a friendly unit within 4″, the target may Evade.` },
+      ] },
+
+    { id:'hightemplar', race:'protoss', name:`High Templar`, plural:`High Templar`, slot:'support', role:`Damage Dealer`, base:`40mm`,
+      tags:['PROTOSS'], ctags:`Biological, Light, Psionic, Ground`,
+      stats:{ sh:3, spd:`4″/7″`, arm:`5+`, eva:`6+`, hp:3, size:2 }, supply:`1 → 0 · 2 → 1 · 3–4 → 2`,
+      sizes:[[2,130,1],[4,200,2]],
+      weapons:[
+        `Psi Blast | 8″ | All | 1 | 3+ | Light | D3 | 2 | INSTANT`,
+        `Strike | E | Ground | 1 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Our Minds as One`, `Passive`, `At Current Supply 2: its first Special Ability each Round costs 1 PE less and Psionic Storm dice get +1.`],
+        [`Feedback`, `Movement · Active · 1 PE`, `Enemy Mechanical or Psionic unit within 8″: until End of Round it takes NON-LETHAL DAMAGE (3) after each Active or Reaction ability it uses (not card abilities).`],
+      ],
+      upgrades:[
+        { n:`Psionic Storm`, c:[20,30], t:`Movement · Active · 2 PE`, d:`Storm token within 10″ and LoS (stays if the Templar dies). End of each Phase: Blast Template on it; each covered unit rolls 3 dice + 1 per covered model, each 5+ is 1 non-lethal damage (Movement) or 1 Damage (Assault).` },
+        { n:`Farsight`, c:20, t:`Active · 1 PE`, d:`A friendly unit within 12″ may Evade all attacks until End of Round.` },
+      ] },
+
+    { id:'twilight', race:'protoss', name:`Twilight Templar`, plural:`Twilight Templar`, slot:'support', role:`Damage Dealer`, base:`40mm`, unique:1,
+      tags:['PROTOSS', 'TEMPLAR CASTE'], ctags:`Biological, Light, Psionic, Ground`,
+      stats:{ sh:3, spd:`4″/7″`, arm:`5+`, eva:`6+`, hp:3, size:2 }, supply:`1 → 0 · 2 → 1`,
+      sizes:[[2,230,1]],
+      weapons:[
+        `Psi Blast | 8″ | All | 2 | 3+ | Light | D3 | 2 | INSTANT`,
+        `Strike | E | Ground | 1 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Bound by the Khala`, `Reaction · 0 PE`, `When another friendly unit within 8″ loses Current Supply, ready one non-Unique Exhausted Tactical Card.`],
+        [`Psionic Gale`, `Movement · Active · 2 PE`, `Like Psionic Storm, but each 4+ counts.`],
+        [`Feedback`, `Movement · Active · 1 PE`, `Enemy Mechanical or Psionic unit within 8″ takes NON-LETHAL DAMAGE (3) after each Active/Reaction ability it uses this Round.`],
+        [`Warp-In`, `Movement · Active · 1 PE`, `PLACE (6).`],
+      ] },
+
+    { id:'artanis', race:'protoss', name:`Artanis`, slot:'hero', role:`Tank`, base:`40mm`, unique:1,
+      tags:['PROTOSS'], ctags:`Biological, Psionic, Ground`,
+      stats:{ sh:4, spd:`7″`, arm:`4+`, eva:`5+`, hp:8, size:2 }, supply:`1 → 1`,
+      sizes:[[1,270,1]],
+      weapons:[
+        `Twilight Blades – Strike | E | Ground | 2 | 2+ | Armoured | D3 | 3 | –`,
+        `Twilight Blades – Sweep | E | Ground | 6 | 2+ | Light | D3+1 | 1 | –`,
+      ],
+      abilities:[
+        [`Commander`, `Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
+        [`Phase Prism`, `Movement · Passive`, `When deploying from Reserves, may PLACE (0) touching another friendly unit, which returns to Reserves; his activation ends.`],
+        [`Lightning Dash`, `Assault · Reaction · 1 PE`, `After a successful Charge, may Charge a different enemy (no second Devastating Charge).`],
+        [`Hierarch's Stand`, `Assault · Reaction · 1 PE`, `Redirect a ranged attack aimed at a friendly unit within 8″ to Artanis (if he's a valid target); he may Evade it.`],
+        [`Devastating Charge`, `Passive`, `IMPACT (6) 4+.`],
+      ] },
+
+    { id:'zeratul', race:'protoss', name:`Zeratul`, slot:'hero', role:`Damage Dealer`, base:`40mm`, unique:1,
+      tags:['PROTOSS'], ctags:`Biological, Psionic, Ground`,
+      stats:{ sh:3, spd:`7″`, arm:`5+`, eva:`5+`, hp:5, size:2 }, supply:`1 → 1`,
+      sizes:[[1,230,1]],
+      weapons:[`Master Warp Blade | E | Ground | 4 | 3+ | Light, Armoured | D3 | 2 | INSTANT`],
+      abilities:[
+        [`One with the Shadows`, `Passive`, `Becomes HIDDEN after fully resolving an action.`],
+        [`Prophetic Vision`, `Reaction · 1 PE · REPEATABLE`, `When attacked, Evade on an unmodifiable 4+.`],
+        [`Sentenced to Death`, `Movement · Active · 1 PE`, `Mark an enemy: his close combat attacks on it gain CRITICAL HIT (2).`],
+        [`Void Prison`, `Movement · Active · 1 PE`, `Faction Indicator within 8″; enemies within 2″ of it get DEBUFF Speed (2).`],
+        [`Void Blink`, `Assault · Active · 1 PE`, `If unengaged, PLACE (6).`],
+        [`Shadow Strike`, `Combat · Active · 1 PE`, `Every enemy engaged with him takes HITS 4 (1).`],
+        [`Devastating Charge`, `Passive`, `IMPACT (4) 4+.`],
+      ] },
+
+    { id:'tassadar', race:'protoss', name:`Tassadar`, slot:'hero', role:`Tactician`, base:`40mm`, unique:1,
+      tags:['PROTOSS'], ctags:`Biological, Psionic, Ground`,
+      stats:{ sh:3, spd:`7″`, arm:`5+`, eva:`5+`, hp:6, size:2 }, supply:`1 → 1`,
+      sizes:[[1,230,1]],
+      weapons:[
+        `Resonance Beam | 12″ | All | 6 | 3+ | Armoured | D3 | 1 | INSTANT`,
+        `Strike | E | Ground | 6 | 4+ | – | – | 1 | –`,
+      ],
+      abilities:[
+        [`Commander`, `Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
+        [`Force Wall`, `Movement · Active · 1 PE`, `Set two Force Wall tokens within 8″: Size ≤2 can't cross; a Size 3+ model crossing removes one.`],
+        [`Executor's Will`, `Movement · Active · 1 PE`, `Mark two enemy units (no LoS). Next Assault Phase, if either ends its activation still marked, you may activate two friendly units in a row.`],
+        [`Khala's Gift`, `Movement · Active · 0 PE`, `Another friendly Biological unit within 12″: its first Special Ability this Round costs 1 less.`],
+        [`Psi Lightning`, `Assault · Active · 0 PE`, `Each unit within 2″ of a friendly Force Wall token takes 1 Damage.`],
+        [`Telekinetic Push`, `Assault · Active · 1 PE`, `Move each friendly Force Wall token up to 6″.`],
+      ] },
+
+    // Protoss — summoned
+    { id:'pylon', race:'protoss', summoned:1, name:`Pylon`, by:`Khalai faction card (Pylon Warp-In)`, base:`80mm`,
+      tags:['PROTOSS', 'KHALAI'], ctags:`Armoured, Ground`,
+      stats:{ sh:2, spd:`–`, arm:`5+`, eva:`–`, hp:8, size:3 }, supply:`0`, sizes:[[1,0,0]], weapons:[],
+      abilities:[
+        [`Khalai Ingenuity`, `Passive · once per Round`, `A friendly unit within 4″ pays 1 PE less for a PE ability.`],
+        [`Structure`, `Passive`, `Can't activate or act, Supply 0, never holds markers.`],
+        [`Warp Conduit`, `Movement · Passive · once per Round`, `A Ground unit may Deploy using the Pylon's base as its Entry Edge; its activation then ends.`],
+      ] },
+  ],
+
+  // ─────────────────────────────── MISSIONS ───────────────────────────────
+  // [starting Supply Pool, escalation per Round, Rounds, early-win lead (null = none)]
+  // Grand Offensive has no published values — the app uses Standard.
+  missions: [
+    { name:`Supply Drop`, std:[6,2,5,12], sk:[4,1,4,8], brief:`Markers activate one per Round; holding an active marker scores the Round it activated, then it's removed.` },
+    { name:`Hold Position`, std:[6,2,5,10], sk:[3,1,5,8], brief:`From Round 2: 1 VP per held marker (2 VP if it's the opponent's colour).` },
+    { name:`Frontlines`, std:[6,2,5,10], sk:[3,1,5,8], brief:`From Round 2: 1 VP per held marker, +2 VP for each one taken from the opponent this Round.` },
+    { name:`Gather the Resources`, std:[6,2,5,10], sk:[3,1,5,8], brief:`From Round 2: 2 VP per held opponent-colour marker; Gather action near neutral/opponent markers for 1 VP.` },
+    { name:`Divide and Conquer`, std:[8,2,4,10], sk:[4,1,4,8], brief:`From Round 1: 1 VP per table quarter where you have more Supply; +2 VP for Marker 5.` },
+    { name:`Artefact Hunt`, std:[6,2,5,null], sk:[3,1,5,null], brief:`From Round 2 units claim markers and carry them home; scored at the end of Round 5.` },
+    { name:`Fire in the Sky`, std:[5,3,5,10], sk:[3,2,5,8], brief:`From Round 2: VP equal to each held marker's Sabotage Level (1–3); Sabotage action changes levels.` },
+  ],
+};
+</script>
+<!-- ═══════════════════════════ END OF GAME DATA ═══════════════════════════ -->
+
+<style>
+:root{
+  --bg:#0d1117; --panel:#151c26; --panel2:#1c2531; --line:#2a3545; --text:#e6edf3; --muted:#8d9aab; --faint:#5f6d80;
+  --accent:#5aa9ff; --accent-ink:#06121f;
+  --ok:#3fb950; --bad:#ff6b6b; --warn:#e3b341;
+  --core:#5aa9ff; --elite:#f0883e; --support:#3fb950; --air:#39c5cf; --hero:#c297ff;
+  --mod:#7ee787;
+  color-scheme:dark;
+}
+:root[data-race="zerg"]{--accent:#c084fc}
+:root[data-race="protoss"]{--accent:#f5c451}
+:root[data-theme="light"]{
+  --bg:#f4f6f9; --panel:#ffffff; --panel2:#eef1f5; --line:#d5dbe3; --text:#17202b; --muted:#5b6878; --faint:#8a96a5;
+  --accent:#1f6fd1; --accent-ink:#fff; --ok:#1a7f37; --bad:#cf222e; --warn:#9a6700;
+  --core:#1f6fd1; --elite:#c4511a; --support:#1a7f37; --air:#0e7d86; --hero:#8250df; --mod:#1a7f37;
+  color-scheme:light;
+}
+:root[data-theme="light"][data-race="zerg"]{--accent:#8b3fd9}
+:root[data-theme="light"][data-race="protoss"]{--accent:#a87400}
+@media (prefers-color-scheme: light){
+  :root:not([data-theme="dark"]):not([data-theme="light"]){
+    --bg:#f4f6f9; --panel:#ffffff; --panel2:#eef1f5; --line:#d5dbe3; --text:#17202b; --muted:#5b6878; --faint:#8a96a5;
+    --accent:#1f6fd1; --accent-ink:#fff; --ok:#1a7f37; --bad:#cf222e; --warn:#9a6700;
+    --core:#1f6fd1; --elite:#c4511a; --support:#1a7f37; --air:#0e7d86; --hero:#8250df; --mod:#1a7f37;
+    color-scheme:light;
+  }
+  :root:not([data-theme="dark"]):not([data-theme="light"])[data-race="zerg"]{--accent:#8b3fd9}
+  :root:not([data-theme="dark"]):not([data-theme="light"])[data-race="protoss"]{--accent:#a87400}
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;font-variant-numeric:tabular-nums}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--accent)}
+.wrap{max-width:820px;margin:0 auto;padding:0 12px}
+.muted{color:var(--muted)} .faint{color:var(--faint)} .small{font-size:13px}
+.hidden{display:none!important}
+
+/* app bar */
+.appbar{display:flex;align-items:center;gap:8px;max-width:820px;margin:0 auto;padding:10px 12px 6px}
+.brand{font-weight:800;letter-spacing:.02em;white-space:nowrap;font-size:17px}
+.brand b{color:var(--accent)}
+#listName{flex:1;min-width:0;background:transparent;border:1px solid transparent;border-radius:8px;padding:6px 8px;font-weight:600;font-size:16px}
+#listName:hover,#listName:focus{border-color:var(--line);background:var(--panel);outline:none}
+.btn{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 12px;white-space:nowrap;line-height:1.2}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible,.chip:focus-visible,.seg button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:transparent;font-weight:700}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--bad)}
+.btn.small{padding:4px 9px;font-size:13px}
+.btn:disabled{opacity:.45;cursor:default}
+
+/* budget bar */
+.budget{position:sticky;top:0;z-index:30;background:var(--bg);border-bottom:1px solid var(--line);box-shadow:0 4px 14px rgba(0,0,0,.18)}
+.budget .in{max-width:820px;margin:0 auto;padding:7px 12px;display:grid;grid-template-columns:1fr 1fr auto;gap:6px}
+.meter{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:3px 9px 5px;overflow:hidden;display:flex;justify-content:space-between;align-items:baseline;gap:6px;min-width:0}
+.meter i{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);transition:width .2s}
+.meter .k{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.meter .v{font-weight:700;white-space:nowrap}
+.meter small{color:var(--muted);font-weight:500}
+.meter .k .ks,.probs .short{display:none}
+.meter.bad{border-color:var(--bad)} .meter.bad i{background:var(--bad)} .meter.bad .v{color:var(--bad)}
+.probs{border-radius:8px;border:1px solid var(--line);background:var(--panel);font-weight:700;padding:3px 10px;white-space:nowrap}
+.probs.ok{color:var(--ok)} .probs.bad{color:#fff;background:var(--bad);border-color:var(--bad)}
+.slotline{grid-column:1/-1;display:flex;gap:5px;flex-wrap:wrap;align-items:center}
+.sc{display:inline-flex;gap:5px;align-items:baseline;padding:2px 8px;border-radius:999px;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c);font-size:13px;white-space:nowrap}
+.sc b{font-weight:700}
+.sc.zero{opacity:.45}
+.sc.over{border-color:var(--bad);color:var(--bad)}
+.sc.full b{color:var(--c)}
+.resn{margin-left:auto;font-size:13px;color:var(--muted);white-space:nowrap}
+.resn b{color:var(--text)}
+
+/* tabs */
+.tabs{max-width:820px;margin:0 auto;padding:8px 12px 0;display:flex;gap:4px;overflow-x:auto}
+.tabs button{background:none;border:none;border-bottom:2px solid transparent;padding:8px 10px;color:var(--muted);font-weight:600;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent)}
+
+main{max-width:820px;margin:0 auto;padding:10px 12px 40px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:0 0 12px}
+.card h3,.group h3{margin:0 0 8px;font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);display:flex;gap:8px;align-items:baseline}
+.card h3 .r,.group h3 .r{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:600}
+
+/* segmented controls */
+.seg{display:inline-flex;flex-wrap:wrap;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel2)}
+.seg button{border:none;background:none;padding:7px 12px;color:var(--muted);font-weight:600}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.setup{display:grid;gap:10px}
+.setup .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.setup label.lbl{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;min-width:58px}
+select,input[type=number],input[type=text],input[type=search],textarea{background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:7px 9px}
+select{max-width:100%}
+input[type=number]{width:96px}
+.facinfo{font-size:13px;color:var(--muted)}
+
+/* problems */
+.problems ul{margin:0;padding:0;list-style:none;display:grid;gap:6px}
+.problems li{padding:7px 10px;border-radius:8px;background:color-mix(in srgb,var(--bad) 12%,transparent);border-left:3px solid var(--bad)}
+.problems li.note{background:color-mix(in srgb,var(--warn) 10%,transparent);border-left-color:var(--warn)}
+.problems .legal{color:var(--ok);font-weight:700}
+
+/* unit rows */
+.group{margin:0 0 14px}
+.group h3{padding:0 2px}
+.unit{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--c);border-radius:10px;margin:0 0 8px;padding:9px 10px}
+.unit.err{border-color:var(--bad);border-left-color:var(--bad)}
+.unit header{display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.unit h4{margin:0;font-size:16px;flex:1;min-width:0}
+.unit h4 small{color:var(--muted);font-weight:500}
+.unit .cost{font-weight:800;font-size:16px}
+.unit .tw{color:var(--muted);transition:transform .15s;font-size:12px}
+.unit.open .tw{transform:rotate(180deg)}
+.badge{font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c);white-space:nowrap;text-transform:uppercase;letter-spacing:.05em}
+.tag{font-size:11px;padding:1px 6px;border-radius:5px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.tag.uq{border-color:var(--warn);color:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chip{border:1px solid var(--line);background:var(--panel2);border-radius:999px;padding:5px 11px;font-size:13.5px;line-height:1.25;color:var(--text)}
+.chip small{color:var(--muted)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.chip.on small{color:inherit;opacity:.8}
+.chip .dia{font-style:normal;margin-right:4px;font-size:11px;color:var(--warn)}
+.chip.on .dia{color:inherit}
+.chip.size{border-radius:8px}
+.uerr{color:var(--bad);font-size:13px;margin-top:6px}
+.loadline{font-size:13px;margin-top:7px;color:var(--muted)}
+.loadline b{color:var(--text);font-weight:600}
+.add{width:100%;padding:11px;border:1px dashed var(--line);background:transparent;border-radius:10px;color:var(--accent);font-weight:700}
+.add:hover{border-color:var(--accent)}
+.empty{color:var(--muted);text-align:center;padding:18px 8px}
+
+/* datasheet */
+.sheet{margin-top:10px;border-top:1px solid var(--line);padding-top:10px;display:grid;gap:10px}
+.sheet .meta{font-size:13px;color:var(--muted)}
+.tw-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{border-collapse:collapse;width:100%}
+.stats th,.stats td,.weapons th,.weapons td{padding:4px 6px;text-align:center;border-bottom:1px solid var(--line);white-space:nowrap}
+.stats th,.weapons th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600}
+.stats td{font-weight:700;font-size:16px}
+.weapons td{font-size:13.5px}
+.weapons td:first-child,.weapons th:first-child{text-align:left}
+.weapons td.kw{text-align:left;white-space:normal;min-width:150px;font-size:12.5px}
+.weapons tr.cc td:first-child::after{content:" ⚔";color:var(--muted);font-size:11px}
+td.mod,span.mod{color:var(--mod)}
+.wsrc{display:block;font-size:11px;color:var(--muted);font-weight:400}
+.abl{margin:0;padding:0;list-style:none;display:grid;gap:5px;font-size:14px}
+.abl li b{font-weight:700}
+.abl .t{font-size:11.5px;color:var(--muted);margin-left:4px}
+.abl .u{font-size:10.5px;font-weight:700;color:var(--accent);border:1px solid currentColor;border-radius:4px;padding:0 4px;margin-left:5px;text-transform:uppercase}
+.abl .n{display:block;font-size:12.5px;color:var(--warn)}
+.uactions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+
+/* cards section */
+.crow{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.crow:first-of-type{border-top:none}
+.crow .nm{flex:1;min-width:140px;font-weight:600;cursor:pointer}
+.crow .nm small{font-weight:400}
+.sg{font-size:11.5px;padding:1px 7px;border-radius:999px;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent);white-space:nowrap;font-weight:700}
+.gas{font-weight:700;min-width:44px;text-align:right}
+.step{display:inline-flex;align-items:center;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.step button{background:var(--panel2);border:none;width:30px;height:28px}
+.step span{min-width:24px;text-align:center;font-weight:700}
+.cabl{flex-basis:100%;font-size:13px;color:var(--muted);padding-left:2px}
+.cabl b{color:var(--text)}
+
+/* plan */
+.plan th,.plan td{padding:6px;border-bottom:1px solid var(--line);text-align:left;font-size:14px}
+.plan th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+.plan td.num{text-align:right;font-weight:700;white-space:nowrap}
+.plan tr.over td{color:var(--bad)}
+.prow{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.prow .nm{flex:1;min-width:150px}
+.rsel{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.rsel button{border:none;background:var(--panel2);padding:5px 9px;font-size:13px;color:var(--muted)}
+.rsel button+button{border-left:1px solid var(--line)}
+.rsel button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);font-weight:700}
+.rsel button.no{opacity:.4}
+
+/* roster */
+pre.roster{white-space:pre-wrap;background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px;font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;margin:0;overflow-x:auto}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+
+/* modal */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(5,8,12,.6);display:flex;align-items:flex-end;justify-content:center}
+@media (min-width:700px){.modal{align-items:center}}
+.panel{background:var(--bg);border:1px solid var(--line);border-radius:14px 14px 0 0;width:100%;max-width:680px;max-height:92vh;display:flex;flex-direction:column;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+@media (min-width:700px){.panel{border-radius:14px;max-height:86vh}}
+.panel .ph{padding:12px 14px 10px;border-bottom:1px solid var(--line);display:grid;gap:8px}
+.panel .ph .top{display:flex;align-items:center;gap:8px}
+.panel .ph h2{margin:0;font-size:17px;flex:1}
+.panel .pb{overflow-y:auto;padding:6px 14px 18px;-webkit-overflow-scrolling:touch}
+.pick{padding:10px 0;border-bottom:1px solid var(--line)}
+.pick .top{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.pick .nm{font-weight:700;flex:1;min-width:150px;cursor:pointer}
+.pick.dim .nm{opacity:.55}
+.pick .why{font-size:12.5px;color:var(--warn)}
+.pick .opts{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.pick h4{margin:14px 0 4px;font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.lrow{display:flex;gap:8px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.lrow .nm{flex:1;min-width:160px}
+.lrow.cur .nm b{color:var(--accent)}
+
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:8px 14px;border-radius:999px;font-weight:600;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+
+footer{max-width:820px;margin:0 auto;padding:18px 12px 40px;color:var(--faint);font-size:12.5px;border-top:1px solid var(--line)}
+footer p{margin:4px 0}
+
+@media (max-width:520px){
+  body{font-size:14.5px}
+  .budget .in{gap:5px;padding:6px 10px}
+  .meter{padding:2px 7px 4px}
+  .meter .k .kl,.probs .long,.resn .rl{display:none}
+  .meter .k .ks,.probs .short{display:inline}
+  .probs{padding:2px 9px}
+  .sc{font-size:12px;padding:1px 6px;gap:3px;border-left-width:3px}
+  .chip{padding:5px 9px}
+  .seg button{padding:7px 9px}
+  /* weapon rows stack instead of scrolling sideways */
+  .weapons,.weapons tbody{display:block}
+  .weapons tr:first-child{display:none}
+  .weapons tr{display:flex;flex-wrap:wrap;gap:1px 10px;padding:6px 0;border-bottom:1px solid var(--line)}
+  .weapons td{border:none;padding:0;text-align:left;font-size:13px}
+  .weapons td:first-child{flex-basis:100%;font-weight:700}
+  .weapons td[data-l]::before{content:attr(data-l) " ";color:var(--muted);font-size:11px;font-weight:400}
+  .weapons td.kw{flex-basis:100%;min-width:0}
+  .weapons td.kw.none{display:none}
+}
+
+/* print */
+#print{display:none}
+@media print{
+  body{background:#fff;color:#000;font-size:11pt}
+  body>*:not(#print){display:none!important}
+  #print{display:block}
+  #print h1{font-size:18pt;margin:0 0 2pt}
+  #print h2{font-size:12pt;margin:14pt 0 4pt;border-bottom:1px solid #000}
+  #print table{width:100%;border-collapse:collapse;margin:4pt 0}
+  #print th,#print td{border:1px solid #999;padding:2pt 4pt;text-align:left;font-size:9.5pt;vertical-align:top}
+  #print th{background:#eee}
+  #print .ds{break-inside:avoid;margin:0 0 10pt;border:1px solid #999;padding:5pt}
+  #print .ds h3{margin:0 0 3pt;font-size:11pt}
+  #print .muted{color:#444}
+  #print ul{margin:3pt 0;padding-left:14pt}
+  #print li{font-size:9.5pt}
+  #print .foot{margin-top:14pt;font-size:8pt;color:#444}
+}
+</style>
+</head>
+<body>
+<header class="appbar">
+  <div class="brand">Supply<b>Line</b></div>
+  <input id="listName" data-act="rename" aria-label="List name" autocomplete="off" spellcheck="false">
+  <button class="btn" data-act="lists">Lists</button>
+</header>
+<div class="budget" id="bar"></div>
+<nav class="tabs" role="tablist">
+  <button role="tab" data-act="tab" data-tab="build">Build</button>
+  <button role="tab" data-act="tab" data-tab="sheets">Datasheets</button>
+  <button role="tab" data-act="tab" data-tab="plan">Supply plan</button>
+  <button role="tab" data-act="tab" data-tab="roster">Roster</button>
+</nav>
+<main id="view"></main>
+<footer>
+  <p><b>Unofficial fan tool.</b> Not affiliated with Blizzard Entertainment or Archon Studio. StarCraft is a trademark of Blizzard Entertainment.</p>
+  <p>Official rules, cards and points: <a href="https://starcraft-tmg.com/downloads" target="_blank" rel="noopener">starcraft-tmg.com/downloads</a> · Ability text here is paraphrased — the printed cards win.</p>
+  <p id="dataver"></p>
+</footer>
+<div id="modal"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="print"></div>
+
+<script id="engine">
+/* ─────────────────────────────────────────────────────────────────────────
+   ENGINE — pure list logic, no DOM. Exercised by test/run-tests.mjs.
+   ───────────────────────────────────────────────────────────────────────── */
+const Engine = (() => {
+  const SLOTS = ['core', 'elite', 'support', 'air', 'hero'];
+  const SLOT_NAME = { core:'Core', elite:'Elite', support:'Support', air:'Air', hero:'Hero' };
+  const U = {}, F = {}, C = {};
+  GAME.units.forEach(u => { U[u.id] = u; });
+  GAME.factions.forEach(f => { F[f.id] = f; });
+  GAME.cards.forEach(c => { C[c.id] = c; });
+
+  const fmt = n => n === Infinity ? '∞' : Number(n).toLocaleString('en-US');
+  const joinList = (a, word) => a.length < 2 ? a.join('') : `${a.slice(0, -1).join(', ')} ${word} ${a[a.length - 1]}`;
+  const orList = a => joinList(a, 'or');
+  const andList = a => joinList(a, 'and');
+  const uid = () => Math.random().toString(36).slice(2, 8) + Date.now().toString(36).slice(-3);
+
+  // ── weapons ──
+  const DASH = v => (!v || v === '–' || v === '-') ? '–' : v;
+  const wcache = new Map();
+  function weapon(s) {
+    if (!wcache.has(s)) {
+      const [name, rng, tgt, roa, hit, surge, sd, dmg, kw] = s.split('|').map(x => x.trim());
+      wcache.set(s, { name, rng, tgt, roa, hit, surge: DASH(surge), sd: DASH(sd), dmg, cc: rng === 'E',
+        kw: DASH(kw) === '–' ? [] : kw.split(/,\s*/) });
+    }
+    const w = wcache.get(s);
+    return { ...w, kw: [...w.kw] };
+  }
+  // "LONG RANGE (16″)" replaces an existing LONG RANGE; conditional text ("… within 8″") is appended.
+  function addKw(w, kw) {
+    const m = kw.match(/^([A-Z][A-Z\- ]*?)\s*\([^)]*\)$/);
+    w.newKw = w.newKw || [];
+    if (m) {
+      const i = w.kw.findIndex(k => k === m[1] || k.startsWith(m[1] + ' ('));
+      if (i >= 0) { w.kw[i] = kw; w.newKw.push(kw); return; }
+    }
+    w.kw.push(kw); w.newKw.push(kw);
+  }
+
+  // ── scale ──
+  function scaleInfo(list) {
+    const s = GAME.scales[list.scale] || GAME.scales.standard;
+    const limit = list.scale === 'grand' ? Math.max(0, Math.round(Number(list.limit) || s.limit)) : s.limit;
+    return { ...s, key: GAME.scales[list.scale] ? list.scale : 'standard', limit, gasLimit: Math.floor(limit * GAME.gasRatio) };
+  }
+
+  // ── one list entry ──
+  const upCost = (up, si) => Array.isArray(up.c) ? up.c[Math.min(Math.max(si, 0), up.c.length - 1)] : (up.c || 0);
+  function label(def, n) {
+    if (!def) return 'Unknown unit';
+    return def.sizes.some(s => s[0] > 1) ? `${def.plural || def.name + 's'} ×${n}` : def.name;
+  }
+  function entry(e) {
+    const def = U[e.id];
+    if (!def) return { e, def: null, label: `Unknown unit “${e.id}”`, cost: 0, supply: 0, poolSupply: 0, ups: [], unknown: [] };
+    let si = def.sizes.findIndex(s => s[0] === e.n);
+    const validSize = si >= 0;
+    if (!validSize) {   // price an illegal size at the nearest legal one, and flag it
+      si = def.sizes.reduce((b, s, i) => Math.abs(s[0] - e.n) < Math.abs(def.sizes[b][0] - e.n) ? i : b, 0);
+    }
+    const [, base, supply] = def.sizes[si];
+    const all = def.upgrades || [];
+    const ups = [], unknown = [];
+    (e.up || []).forEach(n => { const u = all.find(x => x.n === n); if (u) { if (!ups.includes(u)) ups.push(u); } else unknown.push(n); });
+    ups.sort((a, b) => all.indexOf(a) - all.indexOf(b));
+    const upg = ups.reduce((a, u) => a + upCost(u, si), 0);
+    const pool0 = ups.some(u => (u.fx || []).some(f => f.pool0));
+    return { e, def, si, validSize, models: e.n, base, upg, cost: base + upg, supply, poolSupply: pool0 ? 0 : supply,
+      ups, unknown, dupUps: (e.up || []).length - new Set(e.up || []).size, label: label(def, e.n) };
+  }
+
+  // ── validation ──
+  function evaluate(list) {
+    const race = GAME.races[list.race];
+    const fac = F[list.faction] && F[list.faction].race === list.race ? F[list.faction] : null;
+    const sc = scaleInfo(list);
+    const ev = { list, race, fac, scale: sc, entries: [], cards: [], minerals: 0, gas: 0, res: 0, resBy: [],
+      used: {}, prov: {}, provBy: {}, errors: [], notes: [] };
+    SLOTS.forEach(t => { ev.used[t] = 0; ev.prov[t] = 0; ev.provBy[t] = []; });
+    const err = (msg, ref) => ev.errors.push({ msg, ref: ref || null });
+    const note = (msg, ref) => ev.notes.push({ msg, ref: ref || null });
+    const provide = (name, slots) => SLOTS.forEach(t => {
+      const n = (slots || {})[t] || 0; if (!n) return;
+      ev.prov[t] += n;
+      const p = ev.provBy[t].find(x => x.name === name);
+      p ? p.n += n : ev.provBy[t].push({ name, n });
+    });
+    const addRes = (name, n) => { ev.res += n; const r = ev.resBy.find(x => x.name === name); r ? r.n += n : ev.resBy.push({ name, n }); };
+
+    if (!race) err('Pick a race.');
+    if (!fac) err('Pick a Faction card.');
+    else { provide(fac.name, fac.slots); addRes(fac.name, fac.res); }
+
+    (list.cards || []).forEach(id => {
+      const c = C[id];
+      if (!c) { err(`Unknown card “${id}” — remove it.`, 'cards'); return; }
+      ev.cards.push(c);
+      ev.gas += c.gas;
+      if (c.res) addRes(c.name, c.res);
+      provide(c.name, c.slots);
+    });
+
+    (list.units || []).forEach(e => {
+      const x = entry(e);
+      ev.entries.push(x);
+      if (!x.def) { err(`Unknown unit “${e.id}” — remove it.`, e.uid); return; }
+      ev.minerals += x.cost;
+      if (!x.def.summoned) ev.used[x.def.slot] += x.supply;
+    });
+
+    const facHas = tags => !fac || (tags || []).every(t => fac.tags.includes(t));
+    const needs = (name, tags) => {
+      const fs = GAME.factions.filter(f => f.race === list.race && tags.every(t => f.tags.includes(t))).map(f => f.name);
+      return fs.length ? `${name} needs the ${orList(fs)} faction card.` : `${name} can't be taken by ${fac.name}.`;
+    };
+
+    // budget
+    if (ev.minerals > sc.limit) err(`${fmt(ev.minerals - sc.limit)} Minerals over the ${fmt(sc.limit)} limit.`, 'minerals');
+    if (sc.key === 'grand' && sc.limit < GAME.scales.grand.min)
+      err(`Grand Offensive starts at ${fmt(GAME.scales.grand.min)} Minerals — raise the limit or pick Standard.`, 'scale');
+    if (ev.gas > sc.gasLimit) err(`${fmt(ev.gas - sc.gasLimit)} Gas over the ${fmt(sc.gasLimit)} limit (Gas is 10% of the Mineral limit).`, 'gas');
+
+    // units
+    ev.entries.forEach(x => {
+      if (!x.def) return;
+      const d = x.def, ref = x.e.uid;
+      if (race && d.race !== list.race) err(`${d.name} isn't a ${race.name} unit.`, ref);
+      else if (d.summoned) err(`${d.name} is summoned during the game (${d.by}) — it can't be bought. Remove it.`, ref);
+      else if (fac && !facHas(d.tags)) err(needs(d.name, d.tags), ref);
+      if (!x.validSize) err(`${d.name} can't be fielded as ${x.models} — legal sizes: ${orList(d.sizes.map(s => String(s[0])))} models.`, ref);
+      x.unknown.forEach(n => err(`${x.label}: unknown upgrade “${n}”.`, ref));
+      if (x.dupUps) err(`${x.label}: the same upgrade is listed twice.`, ref);
+      const spec = x.ups.filter(u => u.sp);
+      if (spec.length > x.models) err(`${x.label}: ${spec.length} Specialist upgrades but only ${x.models} model${x.models > 1 ? 's' : ''} — each needs its own model.`, ref);
+      const reps = {};
+      x.ups.filter(u => u.rep && !u.sp).forEach(u => { (reps[u.rep] = reps[u.rep] || []).push(u.n); });
+      Object.entries(reps).forEach(([w, ns]) => { if (ns.length > 1) err(`${x.label}: ${andList(ns)} all replace ${w} — pick one.`, ref); });
+      (d.abilities || []).forEach(a => { if (a[3]) note(`${d.name} — ${a[0]}: ${a[3]}`, ref); });
+    });
+
+    // unique units
+    const seen = {};
+    ev.entries.forEach(x => { if (x.def && x.def.unique) (seen[x.def.id] = seen[x.def.id] || []).push(x); });
+    Object.values(seen).forEach(xs => { if (xs.length > 1) err(`${xs[0].def.name} is Unique — you have ${xs.length}; keep one.`, xs[xs.length - 1].e.uid); });
+    // mutually exclusive profiles (Nova)
+    const excl = {};
+    ev.entries.forEach(x => { if (x.def && x.def.excl) (excl[x.def.excl] = excl[x.def.excl] || new Set()).add(x.def.name); });
+    Object.values(excl).forEach(s => { if (s.size > 1) err(`Only one of ${orList([...s])} per army.`); });
+
+    // cards
+    const cardCount = {};
+    ev.cards.forEach(c => { cardCount[c.id] = (cardCount[c.id] || 0) + 1; });
+    Object.entries(cardCount).forEach(([id, n]) => {
+      const c = C[id];
+      if (race && c.race !== list.race) err(`${c.name} isn't a ${race.name} card.`, 'cards');
+      else if (fac && c.tags && !facHas(c.tags)) err(needs(c.name, c.tags), 'cards');
+      if (c.unique && n > 1) err(`${c.name} is Unique — only one copy allowed.`, 'cards');
+    });
+    if (race && race.needsCreep) {
+      const n = ev.cards.filter(c => c.kind === 'creep').length;
+      if (n === 0) err('Zerg armies need exactly one Creep card — Accelerating Creep (0 Gas) works with any faction.', 'creep');
+      if (n > 1) err(`Only one Creep card allowed — you have ${n}.`, 'creep');
+    }
+
+    // slots
+    SLOTS.forEach(t => { const short = ev.used[t] - ev.prov[t]; if (short > 0) err(slotMsg(t, short, list, ev), 'slot-' + t); });
+
+    if (sc.key === 'grand') note('No mission card lists Grand Offensive Supply values — the Supply plan uses the Standard ones.');
+    ev.legal = ev.errors.length === 0;
+    return ev;
+  }
+
+  // "2 Elite slots short — Lair, Overlord or Hydralisk Den would add Elite."
+  function slotMsg(t, short, list, ev) {
+    const name = SLOT_NAME[t];
+    let msg = `${short} ${name} slot${short > 1 ? 's' : ''} short`;
+    if (ev.fac && !ev.fac.slots[t]) msg += ` — ${ev.fac.name} has no ${name} slots`;
+    const taken = new Set((list.cards || []).filter(id => C[id] && C[id].unique));
+    const gasLeft = ev.scale.gasLimit - ev.gas;
+    const fits = c => c.gas <= gasLeft ? 1 : 0;
+    const cands = GAME.cards.filter(c => c.race === list.race && c.kind !== 'creep' && (c.slots[t] || 0) > 0 && !taken.has(c.id)
+      && (!c.tags || !ev.fac || c.tags.every(tag => ev.fac.tags.includes(tag))));
+    if (!cands.length) return msg + (t === 'air' ? '; no card adds Air slots yet.' : `; no available card adds ${name}.`);
+    cands.sort((a, b) => (fits(b) - fits(a)) || (Math.min(b.slots[t], short) - Math.min(a.slots[t], short))
+      || (b.res - a.res) || (a.gas - b.gas) || a.name.localeCompare(b.name));
+    const top = cands.slice(0, 3);
+    msg += `${ev.fac && !ev.fac.slots[t] ? ';' : ' —'} ${orList(top.map(c => c.name))} would add ${name}`;
+    msg += fits(top[0]) ? '.' : ` (you're short on Gas, so swap out another card).`;
+    return msg;
+  }
+
+  // ── effective datasheet (whole-unit upgrades applied; Specialist weapons listed separately) ──
+  function effective(x) {
+    const d = x.def;
+    const stats = { ...d.stats }, mod = {};
+    const whole = x.ups.filter(u => !u.sp), spec = x.ups.filter(u => u.sp);
+    const weapons = (d.weapons || []).map(s => weapon(s));
+    whole.forEach(u => {
+      if (!u.w) return;
+      const w = { ...weapon(u.w), src: u.n };
+      const i = u.rep ? weapons.findIndex(v => v.name === u.rep) : -1;
+      if (i >= 0) { w.replaced = u.rep; weapons[i] = w; } else weapons.push(w);
+    });
+    spec.forEach(u => { if (u.w) weapons.push({ ...weapon(u.w), src: u.n, spec: true, replaces: u.rep || null }); });
+    whole.forEach(u => (u.fx || []).forEach(f => {
+      if (f.stat) { stats[f.stat] = Number(stats[f.stat]) + f.add; mod[f.stat] = u.n; }
+      if (f.w) {
+        const names = [].concat(f.w);
+        weapons.forEach(w => {
+          if (!names.includes(w.name)) return;
+          if (f.kw) addKw(w, f.kw);
+          if (f.set) { Object.assign(w, f.set); w.setBy = Object.keys(f.set); }
+          w.modBy = (w.modBy || []).concat(u.n);
+        });
+      }
+    }));
+    const abilities = (d.abilities || []).map(([n, t, txt, nt]) => ({ n, t, d: txt, note: nt }));
+    x.ups.forEach(u => { if (u.d) abilities.push({ n: u.n, t: u.t || '', d: u.d, upg: true }); });
+    return { stats, mod, weapons, abilities };
+  }
+
+  // ── per-model loadout: "Marine 1: AGG-12 · Marine 2: C-14 Rifle + Rocket Launcher · Marines 3–6: C-14 Rifle" ──
+  function loadout(x) {
+    const d = x.def, eff = effective(x);
+    const base = eff.weapons.filter(w => !w.spec);
+    const spec = eff.weapons.filter(w => w.spec);
+    const groups = [];
+    for (let i = 0; i < x.models; i++) {
+      let ws = base;
+      const s = spec[i];
+      if (s) ws = s.replaces && base.some(w => w.name === s.replaces) ? base.map(w => w.name === s.replaces ? s : w) : [...base, s];
+      const key = ws.map(w => w.name).join('|');
+      const g = groups[groups.length - 1];
+      if (g && g.key === key && !s) g.to = i + 1;
+      else groups.push({ key, from: i + 1, to: i + 1, ws, spec: s ? s.src : null });
+    }
+    const one = d.model || d.name, many = d.modelPl || d.plural || one + 's';
+    return groups.map(g => ({
+      label: x.models === 1 ? d.name : g.from === g.to ? `${one} ${g.from}` : `${many} ${g.from}–${g.to}`,
+      ranged: g.ws.filter(w => !w.cc).map(w => w.name),
+      melee: g.ws.filter(w => w.cc).map(w => w.name),
+      spec: g.spec,
+    }));
+  }
+  const loadoutText = (lines, melee = true) => lines.map(l =>
+    `${l.label}: ${[l.ranged.join(' + '), melee ? l.melee.join(' + ') : ''].filter(Boolean).join(' · ') || '—'}`);
+
+  // ── supply plan ──
+  function missionValues(list, name) {
+    const m = GAME.missions.find(x => x.name === (name || list.mission)) || GAME.missions[0];
+    const [start, esc, rounds, lead] = list.scale === 'skirmish' ? m.sk : m.std;
+    return { mission: m, start, esc, rounds, lead };
+  }
+  function supplyPlan(list, name) {
+    const mv = missionValues(list, name);
+    const pools = Array.from({ length: mv.rounds }, (_, i) => i === mv.rounds - 1 ? Infinity : mv.start + mv.esc * i);
+    const units = (list.units || []).map(e => entry(e)).filter(x => x.def && !x.def.summoned).map(x => ({
+      uid: x.e.uid, label: x.label, def: x.def, supply: x.poolSupply, slotSupply: x.supply,
+      round: Number((list.deploy || {})[x.e.uid]) || 0,
+    }));
+    units.forEach(u => { u.earliest = pools.findIndex(p => p >= u.supply) + 1; });
+    const rows = pools.map((pool, i) => {
+      const r = i + 1;
+      const onTable = units.filter(u => u.round >= 1 && u.round <= r).reduce((a, u) => a + u.supply, 0);
+      return { r, pool, arriving: units.filter(u => u.round === r), onTable, over: Math.max(0, onTable - pool), final: r === mv.rounds };
+    });
+    return { ...mv, pools, rows, units,
+      reserve: units.filter(u => !u.round || u.round > mv.rounds),
+      total: units.reduce((a, u) => a + u.supply, 0) };
+  }
+  // Greedy: biggest Supply first, each into the earliest Round where it fits for the rest of the game.
+  function autoPlan(list, name) {
+    const p = supplyPlan(list, name);
+    const load = p.pools.map(() => 0), deploy = {};
+    [...p.units].sort((a, b) => b.supply - a.supply).forEach(u => {
+      for (let r = 1; r <= p.rounds; r++) {
+        if (p.pools.every((pool, i) => i < r - 1 || load[i] + u.supply <= pool)) {
+          for (let i = r - 1; i < p.rounds; i++) load[i] += u.supply;
+          deploy[u.uid] = r; return;
+        }
+      }
+    });
+    return deploy;
+  }
+
+  // ── lists ──
+  function newList(o = {}) {
+    const race = GAME.races[o.race] ? o.race : 'terran';
+    return normalize({ name: o.name || 'New list', race, faction: o.faction || '', scale: o.scale || 'standard',
+      cards: GAME.races[race].needsCreep ? ['creep-accel'] : [] });
+  }
+  function normalize(l) {
+    l = l || {};
+    const units = Array.isArray(l.units) ? l.units : [];
+    return {
+      v: 1, id: l.id || uid(), name: String(l.name || 'Untitled list').slice(0, 80),
+      race: GAME.races[l.race] ? l.race : 'terran', faction: F[l.faction] ? l.faction : '',
+      scale: GAME.scales[l.scale] ? l.scale : 'standard', limit: Number(l.limit) || GAME.scales.grand.limit,
+      units: units.map(u => ({ uid: u.uid || uid(), id: String(u.id), n: Number(u.n) || (U[u.id] ? U[u.id].sizes[0][0] : 1),
+        up: Array.isArray(u.up) ? u.up.map(String) : [] })),
+      cards: Array.isArray(l.cards) ? l.cards.map(String) : [],
+      mission: GAME.missions.some(m => m.name === l.mission) ? l.mission : GAME.missions[1].name,
+      deploy: l.deploy && typeof l.deploy === 'object' ? { ...l.deploy } : {},
+      updated: l.updated || Date.now(),
+    };
+  }
+  function addUnit(list, id, n) {
+    const def = U[id];
+    const e = { uid: uid(), id, n: n || def.sizes[0][0], up: [] };
+    list.units.push(e);
+    return e;
+  }
+  // Toggle an upgrade; a whole-unit upgrade that replaces a weapon switches off any other one replacing the same weapon.
+  function toggleUpgrade(e, name) {
+    const def = U[e.id]; const u = def && (def.upgrades || []).find(x => x.n === name);
+    if (!u) return;
+    if (e.up.includes(name)) { e.up = e.up.filter(n => n !== name); return; }
+    if (u.rep && !u.sp) {
+      const clash = def.upgrades.filter(o => o !== u && o.rep === u.rep && !o.sp).map(o => o.n);
+      e.up = e.up.filter(n => !clash.includes(n));
+    }
+    e.up.push(name);
+  }
+
+  // ── text export / import ──
+  const ORDER = ['hero', 'core', 'elite', 'support', 'air'];
+  function toText(list) {
+    const ev = evaluate(list), sc = ev.scale, L = [];
+    L.push(list.name || 'Untitled list');
+    L.push(`${ev.race ? ev.race.name : '?'} · ${ev.fac ? ev.fac.name : 'no faction'} · ${sc.name} (${fmt(sc.limit)})`);
+    L.push(`Minerals ${fmt(ev.minerals)}/${fmt(sc.limit)} · Gas ${fmt(ev.gas)}/${fmt(sc.gasLimit)} · ${ev.race ? ev.race.res : 'res'} ${ev.res}`);
+    L.push('Slots: ' + SLOTS.filter(t => ev.prov[t] || ev.used[t]).map(t => `${SLOT_NAME[t]} ${ev.used[t]}/${ev.prov[t]}`).join(' · '));
+    ev.errors.forEach(p => L.push(`! ${p.msg}`));
+    ORDER.forEach(t => {
+      const xs = ev.entries.filter(x => x.def && x.def.slot === t);
+      if (!xs.length) return;
+      L.push('', SLOT_NAME[t].toUpperCase());
+      xs.forEach(x => {
+        L.push(`• ${x.label} [${x.supply} Supply] — ${fmt(x.cost)}`);
+        if (x.ups.length) L.push(`    + ${x.ups.map(u => u.n).join(', ')}`);
+        if (x.ups.some(u => u.sp)) L.push(`    ${loadoutText(loadout(x), false).join(' | ')}`);
+      });
+    });
+    L.push('', 'CARDS');
+    if (ev.fac) L.push(`• ${ev.fac.name} (Faction card)`);
+    const cnt = [];
+    ev.cards.forEach(c => { const o = cnt.find(z => z.c === c); o ? o.n++ : cnt.push({ c, n: 1 }); });
+    cnt.forEach(({ c, n }) => L.push(`• ${c.name}${n > 1 ? ' ×' + n : ''}${c.kind === 'creep' ? ' (Creep)' : ''} — ${c.gas * n} Gas`));
+    L.push('', `Supply Line · unofficial list builder · data: ${GAME.version}`);
+    return L.join('\n');
+  }
+
+  function fromText(text) {
+    const lines = String(text || '').split(/\r?\n/);
+    const first = lines.find(l => l.trim());
+    if (!first) throw new Error('Nothing to import.');
+    const byLen = arr => [...arr].sort((a, b) => b.name.length - a.name.length);
+    // Faction: the "(Faction card)" line, else the header lines — never upgrade names like "Fury of the Nerazim".
+    const facLine = lines.find(l => /\(faction( card)?\)/i.test(l)) || lines.slice(0, 4).join(' ');
+    const fac = byLen(GAME.factions).find(f => facLine.toLowerCase().includes(f.name.toLowerCase()));
+    let race = fac ? fac.race : (Object.keys(GAME.races).find(r => new RegExp(`\\b${r}\\b`, 'i').test(text)) || null);
+    const list = normalize({ name: first.trim().replace(/^[•\-*]\s*/, ''), race: race || 'terran', faction: fac ? fac.id : '' });
+    const gm = text.match(/grand offensive\s*\(([\d,.\s]+)\)/i);
+    list.scale = /grand offensive/i.test(text) ? 'grand' : /skirmish/i.test(text) ? 'skirmish' : 'standard';
+    if (gm) list.limit = parseInt(gm[1].replace(/[^\d]/g, ''), 10) || list.limit;
+    list.cards = [];
+    const norm = s => s.toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim();
+    let last = null;
+    for (const raw of lines.slice(1)) {
+      const line = raw.trim();
+      if (!line) continue;
+      if (/^\+/.test(line) && last) {
+        const def = U[last.id];
+        line.replace(/^\+\s*/, '').split(/\s*,\s*/).forEach(n => {
+          const u = (def.upgrades || []).find(x => norm(x.n) === norm(n));
+          if (u && !last.up.includes(u.n)) last.up.push(u.n);
+        });
+        continue;
+      }
+      if (!/^[•\-*]/.test(line)) continue;
+      let body = line.replace(/^[•\-*]\s*/, '').replace(/\s*\[[^\]]*\]/g, '')
+        .replace(/\s*[—–-]+\s*[\d,]+\s*(gas|minerals|pts|points)?\s*$/i, '').trim();
+      if (/\(faction( card)?\)/i.test(body)) { last = null; continue; }
+      body = body.replace(/\s*\(creep\)\s*/i, '').trim();
+      let n = null;
+      const cm = body.match(/^(.*?)\s*[×x]\s*(\d+)$/i) || body.match(/^(\d+)\s*[×x]?\s+(.*)$/i);
+      if (cm) { if (/^\d+$/.test(cm[1])) { n = +cm[1]; body = cm[2]; } else { body = cm[1]; n = +cm[2]; } }
+      const key = norm(body);
+      const card = GAME.cards.find(c => (!race || c.race === race) && norm(c.name) === key);
+      if (card) { for (let i = 0; i < (n || 1); i++) list.cards.push(card.id); last = null; continue; }
+      const def = GAME.units.find(u => !u.summoned && (!race || u.race === race) && (norm(u.name) === key || norm(u.plural || u.name + 's') === key));
+      if (def) {
+        if (!race) { race = def.race; list.race = race; }
+        last = addUnit(list, def.id, n || def.sizes[0][0]);
+      } else last = null;
+    }
+    if (GAME.races[list.race].needsCreep && !list.cards.some(id => C[id] && C[id].kind === 'creep')) { /* left for the validator to flag */ }
+    return list;
+  }
+
+  // ── share links (#l=…) ──
+  function encodeShare(list) {
+    const o = { n: list.name, r: list.race, f: list.faction, s: list.scale, l: list.scale === 'grand' ? list.limit : undefined,
+      u: list.units.map(u => u.up.length ? [u.id, u.n, u.up] : [u.id, u.n]), c: list.cards, m: list.mission };
+    return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  }
+  function decodeShare(s) {
+    s = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (s.length % 4) s += '=';
+    const o = JSON.parse(decodeURIComponent(escape(atob(s))));
+    return normalize({ name: o.n, race: o.r, faction: o.f, scale: o.s, limit: o.l, cards: o.c, mission: o.m,
+      units: (o.u || []).map(([id, n, up]) => ({ id, n, up: up || [] })) });
+  }
+
+  // ── known-legal example lists (from the reference list checks) ──
+  const EXAMPLES = [
+    { name: `The Golden Armada`, race: 'protoss', faction: 'khalai', scale: 'standard',
+      units: [['artanis', 1], ['immortal', 1, ['Shield Overcharge']], ['stalker', 2, ['Path of Shadows', 'Fury of the Nerazim']],
+        ['stalker', 1, ['Path of Shadows']], ['zealot', 3, ['Leg Enhancements', 'My Life for Aiur']],
+        ['zealot', 3, ['Leg Enhancements', 'My Life for Aiur', 'Zealous Round']], ['adept', 4, ['Glaive Strike', 'Resonating Glaives', 'Guidance']],
+        ['sentry', 2, ['Solid-Field Projectors']], ['hightemplar', 2, ['Psionic Storm']]],
+      cards: ['gateway', 'robotics', 'twilight-council', 'archives', 'warpprism', 'observer'] },
+    { name: `Anvil of Aiur`, race: 'protoss', faction: 'khalai', scale: 'skirmish',
+      units: [['artanis', 1], ['immortal', 1, ['Shield Overcharge']],
+        ['zealot', 3, ['Leg Enhancements', 'My Life for Aiur', 'We Stand as One', 'Zealous Round']], ['stalker', 1, ['Path of Shadows', 'Fury of the Nerazim']]],
+      cards: ['gateway', 'robotics', 'observer'] },
+    { name: `Founders box — Khalai`, race: 'protoss', faction: 'khalai', scale: 'skirmish',
+      units: [['zealot', 3, ['My Life for Aiur']], ['praetor', 3], ['adept', 4], ['sentry', 2], ['artanis', 1]],
+      cards: ['gateway', 'warpprism', 'observer'] },
+    { name: `Daelaam Stalkers`, race: 'protoss', faction: 'daelaam', scale: 'skirmish',
+      units: [['zealot', 3, ['My Life for Aiur', 'Leg Enhancements', 'We Stand as One', 'Zealous Round']],
+        ['adept', 4, ['Resonating Glaives', 'Glaive Strike', 'Guidance']], ['sentry', 2, ['Solid-Field Projectors', 'Hallucination']],
+        ['stalker', 1, ['Path of Shadows', 'Fury of the Nerazim']], ['stalker', 1, ['Path of Shadows', 'Fury of the Nerazim']]],
+      cards: ['forge', 'twilight-council', 'observer'] },
+    { name: `Kerrigan's Fist`, race: 'zerg', faction: 'ks', scale: 'standard',
+      units: [['kerrigan', 1], ['raptor', 18, ['Shredding Claws', 'Adrenal Glands']], ['zergling', 18, ['Shredding Claws', 'Adrenal Glands']],
+        ['ksraptor', 6], ['roach', 3, ['Glial Reconstitution', 'Tunneling Claws', 'Hydriodic Bile']], ['hydralisk', 4, ['Grooved Spines', 'Ancillary Carapace']],
+        ['ravager', 2, ['Potent Bile']], ['queen', 1, ['Creep Speed', 'Domineering Presence']]],
+      cards: ['creep-malignant', 'warren', 'evo', 'hydraden', 'overlord', 'lair', 'overseer'] },
+    { name: `Kerrigan's Fist — Defiler`, race: 'zerg', faction: 'ks', scale: 'standard',
+      units: [['kerrigan', 1], ['raptor', 18, ['Shredding Claws', 'Adrenal Glands']], ['zergling', 18, ['Shredding Claws', 'Adrenal Glands']],
+        ['ksraptor', 6], ['roach', 3, ['Glial Reconstitution', 'Tunneling Claws']], ['hydralisk', 4, ['Grooved Spines', 'Ancillary Carapace']],
+        ['ravager', 1, ['Potent Bile']], ['queen', 1, ['Creep Speed']], ['defiler', 1, ['Plague']]],
+      cards: ['creep-malignant', 'warren', 'evo', 'hydraden', 'overlord', 'defilermound', 'overseer'] },
+    { name: `Founders box — Raynor's Raiders`, race: 'terran', faction: 'rr', scale: 'skirmish',
+      units: [['marine', 6], ['raider', 6], ['marauder', 2, ['Kinetic Foam']], ['medic', 3, ['Stabilizer Medpacks']], ['raynor', 1]],
+      cards: ['barracks', 'academy', 'orbital'] },
+  ];
+  const example = i => {
+    const x = EXAMPLES[i];
+    return normalize({ ...x, units: x.units.map(([id, n, up]) => ({ id, n, up: up || [] })) });
+  };
+
+  return { SLOTS, SLOT_NAME, units: U, factions: F, cards: C, fmt, weapon, upCost, entry, evaluate, effective, loadout, loadoutText,
+    scaleInfo, missionValues, supplyPlan, autoPlan, newList, normalize, addUnit, toggleUpgrade, toText, fromText,
+    encodeShare, decodeShare, EXAMPLES, example, uid };
+})();
+</script>
+
+<script id="ui">
+/* ─────────────────────────────────────────────────────────────────────────
+   UI — renders the engine's view of the current list. Event delegation via data-act.
+   ───────────────────────────────────────────────────────────────────────── */
+(() => {
+  const E = Engine;
+  const $ = (s, el = document) => el.querySelector(s);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const fmt = E.fmt;
+  const KEY = 'supplyline.v1';
+  const SLOT_ORDER = ['hero', 'core', 'elite', 'support', 'air'];
+  const ui = { tab: 'build', open: new Set(), openCards: new Set(), modal: null, q: '', filter: 'all', peek: null };
+
+  // ── storage ──
+  function load() {
+    let s = null;
+    try { s = JSON.parse(localStorage.getItem(KEY)); } catch (e) { /* blocked or corrupt */ }
+    if (!s || !Array.isArray(s.lists)) s = { lists: [], current: null, theme: 'auto' };
+    s.lists = s.lists.map(E.normalize);
+    if (!s.lists.length) s.lists.push(E.newList({ race: 'terran', scale: 'standard', name: 'New list' }));
+    if (!s.lists.some(l => l.id === s.current)) s.current = s.lists[0].id;
+    return s;
+  }
+  let store = load();
+  const persist = () => { try { localStorage.setItem(KEY, JSON.stringify(store)); } catch (e) { /* storage full or blocked */ } };
+  const cur = () => store.lists.find(l => l.id === store.current);
+  function commit(fn) { const l = cur(); if (fn) fn(l); l.updated = Date.now(); persist(); render(); }
+  function addList(l, msg) { store.lists.unshift(l); store.current = l.id; ui.open.clear(); persist(); render(); if (msg) toast(msg); }
+
+  // ── helpers ──
+  let toastT;
+  function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 1800); }
+  const slotVar = t => `--c:var(--${t})`;
+  const slotChips = slots => E.SLOTS.filter(t => slots[t]).map(t => `<span class="sg" style="${slotVar(t)}">+${slots[t]} ${E.SLOT_NAME[t]}</span>`).join(' ');
+  function copy(text) {
+    if (navigator.clipboard && window.isSecureContext) return navigator.clipboard.writeText(text).then(() => toast('Copied'), () => fallbackCopy(text));
+    fallbackCopy(text);
+  }
+  function fallbackCopy(text) {
+    const ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+    document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); toast('Copied'); } catch (e) { toast('Copy failed — select the text manually'); }
+    ta.remove();
+  }
+  function download(name, text, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type: type || 'text/plain' }));
+    a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
+  }
+  const fileSafe = s => (s || 'list').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '-') || 'list';
+  function applyTheme() {
+    const t = store.theme || 'auto';
+    if (t === 'auto') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  }
+
+  // ── budget bar ──
+  function renderBar(l, ev) {
+    const sc = ev.scale;
+    const meter = (k, ks, v, max) => `<div class="meter${v > max ? ' bad' : ''}"><span class="k"><span class="kl">${k}</span><span class="ks">${ks}</span></span><span class="v">${fmt(v)}<small> / ${fmt(max)}</small></span><i style="width:${max ? Math.min(100, v / max * 100) : 0}%"></i></div>`;
+    const n = ev.errors.length;
+    const slots = E.SLOTS.map(t => {
+      const u = ev.used[t], p = ev.prov[t];
+      const cls = u > p ? 'over' : (!u && !p) ? 'zero' : u === p ? 'full' : '';
+      return `<span class="sc ${cls}" style="${slotVar(t)}" title="${esc(ev.provBy[t].map(x => `${x.name} ${x.n}`).join(', ') || 'none')}">${E.SLOT_NAME[t]} <b>${u}/${p}</b></span>`;
+    }).join('');
+    return `<div class="in">
+      ${meter('Minerals', 'Min', ev.minerals, sc.limit)}
+      ${meter('Gas', 'Gas', ev.gas, sc.gasLimit)}
+      <button class="probs ${n ? 'bad' : 'ok'}" data-act="goto-problems" aria-label="${n ? `${n} problems` : 'Legal list'}"><span class="long">${n ? `${n} problem${n > 1 ? 's' : ''}` : '✓ Legal'}</span><span class="short">${n ? `⚠ ${n}` : '✓'}</span></button>
+      <div class="slotline">${slots}<span class="resn">${ev.race ? ev.race.res : ''} <b>${ev.res}</b><span class="rl">/round</span></span></div>
+    </div>`;
+  }
+
+  // ── build tab ──
+  function renderBuild(l, ev) {
+    const races = Object.entries(GAME.races).map(([k, r]) => `<button data-act="race" data-race="${k}" aria-pressed="${l.race === k}">${r.name}</button>`).join('');
+    const facs = GAME.factions.filter(f => f.race === l.race);
+    const facOpts = `<option value="">Choose a faction…</option>` + facs.map(f => `<option value="${f.id}"${f.id === l.faction ? ' selected' : ''}>${esc(f.name)}</option>`).join('');
+    const scales = Object.entries(GAME.scales).map(([k, s]) => `<button data-act="scale" data-scale="${k}" aria-pressed="${l.scale === k}">${s.name}${k !== 'grand' ? ` <small>${fmt(s.limit)}</small>` : ''}</button>`).join('');
+    const fac = ev.fac;
+    const setup = `<section class="card setup">
+      <div class="row"><label class="lbl">Race</label><div class="seg">${races}</div></div>
+      <div class="row"><label class="lbl" for="facSel">Faction</label><select id="facSel" data-act="faction">${facOpts}</select>
+        ${fac ? `<span class="facinfo">${slotChips(fac.slots)} · ${fac.res} ${ev.race.res}</span>` : ''}</div>
+      <div class="row"><label class="lbl">Scale</label><div class="seg">${scales}</div>
+        ${l.scale === 'grand' ? `<input type="number" min="2001" step="50" value="${ev.scale.limit}" data-act="limit" aria-label="Mineral limit">` : ''}
+        <span class="facinfo">${ev.scale.table} · Gas ${fmt(ev.scale.gasLimit)}</span></div>
+    </section>`;
+
+    const general = ev.errors.filter(p => !p.ref || !l.units.some(u => u.uid === p.ref));
+    const unitErrs = ev.errors.length - general.length;
+    const probs = `<section class="card problems" id="problems">
+      <h3>Problems <span class="r">${ev.errors.length ? `<span style="color:var(--bad)">${ev.errors.length}</span>` : ''}</span></h3>
+      ${ev.errors.length ? `<ul>${general.map(p => `<li>${esc(p.msg)}</li>`).join('')}${unitErrs ? `<li>${unitErrs} unit problem${unitErrs > 1 ? 's' : ''} — marked in red below.</li>` : ''}</ul>`
+        : `<div class="legal">✓ Legal list</div>`}
+      ${ev.notes.length ? `<ul style="margin-top:6px">${ev.notes.map(p => `<li class="note">${esc(p.msg)}</li>`).join('')}</ul>` : ''}
+    </section>`;
+
+    const groups = SLOT_ORDER.map(t => {
+      const xs = ev.entries.filter(x => (x.def ? x.def.slot : 'core') === t);
+      if (!xs.length) return '';
+      return `<div class="group"><h3 style="${slotVar(t)}"><span style="color:var(--c)">${E.SLOT_NAME[t]}</span><span class="r">${ev.used[t]} / ${ev.prov[t]} slots</span></h3>
+        ${xs.map(x => unitRow(x, ev)).join('')}</div>`;
+    }).join('');
+    const units = `<section>${groups || `<div class="empty">No units yet.</div>`}
+      <button class="add" data-act="picker">+ Add unit</button></section>`;
+
+    return setup + probs + units + `<div style="height:14px"></div>` + renderCards(l, ev);
+  }
+
+  function upTitle(u) {
+    const bits = [];
+    if (u.sp) bits.push('SPECIALIST — one model');
+    if (u.rep) bits.push(`replaces ${u.rep}`);
+    if (u.t) bits.push(u.t);
+    if (u.d) bits.push(u.d);
+    if (u.w && !u.d) bits.push(E.weapon(u.w).kw.join(', '));
+    return bits.join(' · ');
+  }
+
+  function unitRow(x, ev) {
+    const uid = x.e.uid;
+    const errs = ev.errors.filter(p => p.ref === uid);
+    if (!x.def) return `<article class="unit err" style="${slotVar('core')}"><header><h4>${esc(x.label)}</h4>
+      <button class="btn small danger" data-act="remove" data-uid="${uid}">Remove</button></header></article>`;
+    const d = x.def, open = ui.open.has(uid);
+    const sizes = d.sizes.length > 1 ? `<div class="chips">${d.sizes.map(s => {
+      const on = s[0] === x.models;
+      return `<button class="chip size${on ? ' on' : ''}" data-act="size" data-uid="${uid}" data-n="${s[0]}" aria-pressed="${on}">${s[0]} <small>· ${s[1]} · ${s[2]} Supply</small></button>`;
+    }).join('')}</div>` : '';
+    const ups = (d.upgrades || []).length ? `<div class="chips">${d.upgrades.map(u => {
+      const on = x.e.up.includes(u.n);
+      return `<button class="chip${on ? ' on' : ''}" data-act="up" data-uid="${uid}" data-up="${esc(u.n)}" aria-pressed="${on}" title="${esc(upTitle(u))}">${u.sp ? '<i class="dia" title="Specialist">◆</i>' : ''}${esc(u.n)} <small>+${E.upCost(u, x.si)}</small></button>`;
+    }).join('')}</div>` : '';
+    const specOn = x.ups.some(u => u.sp);
+    const load = specOn && !open ? `<div class="loadline">${E.loadoutText(E.loadout(x)).map(s => esc(s).replace(/^([^:]+):/, '<b>$1:</b>')).join('<br>')}</div>` : '';
+    return `<article class="unit${errs.length ? ' err' : ''}${open ? ' open' : ''}" style="${slotVar(d.slot)}" data-uid="${uid}">
+      <header data-act="toggle" data-uid="${uid}" role="button" aria-expanded="${open}" tabindex="0">
+        <span class="badge">${x.supply} Supply</span>
+        <h4>${esc(x.label)}${d.unique ? ' <span class="tag uq">Unique</span>' : ''}</h4>
+        <span class="cost">${fmt(x.cost)}</span><span class="tw">▼</span>
+      </header>
+      ${sizes}${ups}${load}
+      ${errs.map(p => `<div class="uerr">⚠ ${esc(p.msg)}</div>`).join('')}
+      ${open ? `${datasheet(x)}<div class="uactions" style="margin-top:8px">
+        <button class="btn small" data-act="dup" data-uid="${uid}">Duplicate</button>
+        <button class="btn small danger" data-act="remove" data-uid="${uid}">Remove</button></div>` : ''}
+    </article>`;
+  }
+
+  // Effective datasheet: stats with numeric upgrades applied, weapons, abilities, loadout.
+  function datasheet(x, opts = {}) {
+    const d = x.def, eff = E.effective(x);
+    const s = eff.stats;
+    const cell = (k, v) => `<td${eff.mod[k] ? ` class="mod" title="${esc(eff.mod[k])}"` : ''}>${esc(v)}</td>`;
+    const hasSh = s.sh != null;
+    const stats = `<div class="tw-wrap"><table class="stats"><tr>${hasSh ? '<th>Shield</th>' : ''}<th>Speed</th><th>Armour</th><th>Evade</th><th>HP</th><th>Size</th><th>Supply</th></tr>
+      <tr>${hasSh ? cell('sh', s.sh) : ''}${cell('spd', s.spd)}${cell('arm', s.arm)}${cell('eva', s.eva)}${cell('hp', s.hp)}${cell('size', s.size)}<td${x.poolSupply !== x.supply ? ' class="mod" title="counts 0 for the Supply Pool"' : ''}>${x.supply}${x.poolSupply !== x.supply ? '*' : ''}</td></tr></table></div>`;
+    const wrow = w => {
+      const set = k => (w.setBy || []).includes(k) ? ' class="mod"' : '';
+      const kws = w.kw.map(k => (w.newKw || []).includes(k) ? `<span class="mod">${esc(k)}</span>` : esc(k)).join(', ');
+      const src = w.spec ? `Specialist upgrade · 1 model${w.replaces ? `, instead of ${w.replaces}` : ', extra weapon'}`
+        : w.replaced ? `Upgrade · replaces ${w.replaced}` : w.src ? 'Upgrade · extra weapon' : '';
+      return `<tr class="${w.cc ? 'cc' : ''}"><td${w.src ? ' class="mod"' : ''}>${esc(w.name)}${src ? `<span class="wsrc">${esc(src)}</span>` : ''}</td>
+        <td data-l="Rng">${esc(w.rng)}</td><td data-l="Tgt">${esc(w.tgt)}</td><td data-l="RoA">${esc(w.roa)}</td><td data-l="Hit">${esc(w.hit)}</td><td data-l="Surge"${set('surge')}>${esc(w.surge)}</td><td data-l="S.Die"${set('sd')}>${esc(w.sd)}</td><td data-l="Dmg">${esc(w.dmg)}</td><td class="kw${kws ? '' : ' none'}">${kws || '–'}</td></tr>`;
+    };
+    const weapons = eff.weapons.length ? `<div class="tw-wrap"><table class="weapons"><tr><th>Weapon</th><th>Rng</th><th>Tgt</th><th>RoA</th><th>Hit</th><th>Surge</th><th>S.Die</th><th>Dmg</th><th>Keywords</th></tr>
+      ${eff.weapons.map(wrow).join('')}</table></div>` : '';
+    const abl = `<ul class="abl">${eff.abilities.map(a => `<li><b>${esc(a.n)}</b>${a.upg ? '<span class="u">upgrade</span>' : ''}${a.t ? `<span class="t">${esc(a.t)}</span>` : ''} — ${esc(a.d)}${a.note ? `<span class="n">⚑ ${esc(a.note)}</span>` : ''}</li>`).join('')}</ul>`;
+    const load = d.summoned ? '' : `<div class="loadline" style="margin:0"><b>Loadout</b><br>${E.loadoutText(E.loadout(x)).map(l => esc(l).replace(/^([^:]+):/, '<b>$1:</b>')).join('<br>')}</div>`;
+    const meta = `<div class="meta">${d.summoned ? `Summoned by ${esc(d.by)} · free, no slot` : `${E.SLOT_NAME[d.slot]} · ${esc(d.role)}`} · ${esc(d.base)} · ${esc(d.tags.join(', '))} | ${esc(d.ctags)} · Supply ${esc(d.supply)}</div>`;
+    return `<div class="sheet">${opts.title ? `<h4 style="margin:0">${esc(opts.title)}</h4>` : ''}${meta}${load}${stats}${weapons}${abl}</div>`;
+  }
+
+  function renderCards(l, ev) {
+    const fac = ev.fac;
+    const isZerg = !!(ev.race && ev.race.needsCreep);
+    const creeps = GAME.cards.filter(c => c.kind === 'creep' && c.race === l.race);
+    const creepRow = isZerg ? `<div class="crow"><span class="nm">Creep card <small class="muted">(exactly one)</small></span>
+      <div class="seg">${creeps.map(c => `<button data-act="creep" data-id="${c.id}" aria-pressed="${l.cards.includes(c.id)}">${esc(c.name.replace(' Creep', ''))} <small>${c.gas}</small></button>`).join('')}</div></div>` : '';
+    const counts = [];
+    l.cards.forEach(id => { const c = E.cards[id]; if (!c || c.kind === 'creep') return; const o = counts.find(z => z.c === c); o ? o.n++ : counts.push({ c, n: 1 }); });
+    const unknownCards = l.cards.filter(id => !E.cards[id]);
+    const rows = counts.map(({ c, n }) => {
+      const open = ui.openCards.has(c.id);
+      return `<div class="crow">
+        <span class="nm" data-act="card-toggle" data-id="${c.id}">${esc(c.name)} ${c.unique ? '<span class="tag uq">Unique</span>' : ''}<br><small class="muted">${slotChips(c.slots)} · ${c.res ? `${c.res} ${ev.race.res}` : `<span style="color:var(--warn)">no ${ev.race ? ev.race.res : 'res'}</span>`}</small></span>
+        <span class="gas">${c.gas * n}</span>
+        ${c.unique ? `<button class="btn small danger" data-act="card-remove" data-id="${c.id}" aria-label="Remove ${esc(c.name)}">✕</button>`
+          : `<span class="step"><button data-act="card-dec" data-id="${c.id}" aria-label="One fewer">−</button><span>${n}</span><button data-act="card-inc" data-id="${c.id}" aria-label="One more">+</button></span>`}
+        ${open ? `<div class="cabl">${c.abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${esc(a[2])}</div>`).join('')}${c.note ? `<div>${esc(c.note)}</div>` : ''}</div>` : ''}
+      </div>`;
+    }).join('');
+    return `<section class="card" id="cards">
+      <h3>Cards <span class="r">Gas ${fmt(ev.gas)} / ${fmt(ev.scale.gasLimit)} · ${ev.res} ${ev.race ? ev.race.res : ''}</span></h3>
+      ${fac ? `<div class="crow"><span class="nm" data-act="card-toggle" data-id="fac:${fac.id}">${esc(fac.name)} <small class="muted">Faction card</small><br><small class="muted">${slotChips(fac.slots)} · ${fac.res} ${ev.race.res}</small></span><span class="gas">0</span>
+        ${ui.openCards.has('fac:' + fac.id) ? `<div class="cabl">${fac.abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${esc(a[2])}</div>`).join('')}</div>` : ''}</div>` : ''}
+      ${creepRow}${rows}
+      ${unknownCards.map(id => `<div class="crow"><span class="nm" style="color:var(--bad)">Unknown card “${esc(id)}”</span><button class="btn small danger" data-act="card-remove" data-id="${esc(id)}">✕</button></div>`).join('')}
+      <button class="add" style="margin-top:8px" data-act="cardpicker">+ Add tactical card</button>
+    </section>`;
+  }
+
+  // ── datasheets tab ──
+  function renderSheets(l, ev) {
+    const xs = ev.entries.filter(x => x.def);
+    const summonIds = new Set();
+    if (ev.fac) (ev.fac.summons || []).forEach(id => summonIds.add(id));
+    xs.forEach(x => (x.def.summons || []).forEach(id => summonIds.add(id)));
+    const cardBlock = (name, sub, abilities, note) => `<div class="crow"><span class="nm" style="cursor:default">${esc(name)} <small class="muted">${sub}</small>
+      <div class="cabl" style="padding-top:4px">${abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${esc(a[2])}</div>`).join('')}${note ? `<div>${esc(note)}</div>` : ''}</div></span></div>`;
+    const uniqCards = [...new Set(ev.cards)];
+    const res = `<section class="card"><h3>Resources <span class="r">${ev.res} ${ev.race ? ev.race.res : ''} per Round</span></h3>
+      <div class="small muted">Each card generates its ${ev.race ? ev.race.resName : 'resource'} when Exhausted (refreshes every Round). Using a card's own ability Exhausts it instead.</div>
+      <div class="small" style="margin-top:6px">${ev.resBy.map(r => `${esc(r.name)} <b>${r.n}</b>`).join(' · ') || '—'}</div></section>`;
+    return res
+      + (xs.length ? xs.map(x => `<section class="card unit" style="${slotVar(x.def.slot)}"><header style="cursor:default"><span class="badge">${E.SLOT_NAME[x.def.slot]} · ${x.supply} Supply</span><h4>${esc(x.label)}</h4><span class="cost">${fmt(x.cost)}</span></header>
+          ${x.ups.length ? `<div class="loadline">+ ${esc(x.ups.map(u => u.n).join(', '))}</div>` : ''}${datasheet(x)}</section>`).join('')
+        : `<div class="empty">Add units on the Build tab to see their datasheets.</div>`)
+      + `<section class="card"><h3>Cards</h3>
+        ${ev.fac ? cardBlock(ev.fac.name, 'Faction card', ev.fac.abilities) : ''}
+        ${uniqCards.map(c => cardBlock(c.name, c.kind === 'creep' ? 'Creep card' : `Tactical · ${c.gas} Gas`, c.abilities, c.note)).join('')}</section>`
+      + (summonIds.size ? `<section class="card"><h3>Summoned units <span class="r">free · no slot</span></h3>
+        ${[...summonIds].map(id => { const d = E.units[id]; return d ? `<div style="margin-bottom:10px"><b>${esc(d.name)}</b> <small class="muted">via ${esc(d.by)}</small>${datasheet(summonedEntry(d))}</div>` : ''; }).join('')}</section>` : '');
+  }
+  const summonedEntry = d => E.entry({ uid: 'peek', id: d.id, n: d.sizes[0][0], up: [] });
+
+  // ── supply plan tab ──
+  function renderPlan(l, ev) {
+    const p = E.supplyPlan(l);
+    const opts = GAME.missions.map(m => `<option${m.name === p.mission.name ? ' selected' : ''}>${esc(m.name)}</option>`).join('');
+    const scaleNote = l.scale === 'skirmish' ? 'Skirmish' : l.scale === 'grand' ? 'Standard values (no Grand Offensive values published)' : 'Standard';
+    const rows = p.rows.map(r => `<tr class="${r.over ? 'over' : ''}"><td>R${r.r}${r.final ? ' <small class="muted">final</small>' : ''}</td>
+      <td class="num">${r.final ? '∞' : r.pool}</td>
+      <td>${r.arriving.map(u => esc(u.label)).join(', ') || '<span class="faint">—</span>'}</td>
+      <td class="num">${r.onTable}${r.final ? '' : ` / ${r.pool}`}</td>
+      <td class="num">${r.final ? '∞' : r.over ? `+${r.over} over` : r.pool - r.onTable}</td></tr>`).join('');
+    const prow = u => {
+      const btns = Array.from({ length: p.rounds }, (_, i) => {
+        const r = i + 1, fits = u.supply <= p.pools[i];
+        return `<button data-act="deploy" data-uid="${u.uid}" data-r="${r}" aria-pressed="${u.round === r}" class="${fits ? '' : 'no'}" title="${fits ? '' : 'Too big for this Round on its own'}">R${r}</button>`;
+      }).join('');
+      return `<div class="prow"><span class="nm"><b>${esc(u.label)}</b> <small class="muted">${u.supply} Supply${u.supply !== u.slotSupply ? ' (Advanced Medic Facilities)' : ''} · fits from R${u.earliest}</small></span>
+        <span class="rsel">${btns}<button data-act="deploy" data-uid="${u.uid}" data-r="0" aria-pressed="${!u.round}">—</button></span></div>`;
+    };
+    return `<section class="card">
+      <div class="row" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><label class="lbl" for="missionSel" style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em">Mission</label>
+        <select id="missionSel" data-act="mission">${opts}</select></div>
+      <p class="small muted" style="margin:8px 0 0">${scaleNote}: Supply Pool starts at <b>${p.start}</b>, +${p.esc} each Round, ${p.rounds} Rounds — unlimited in the final Round.${p.lead ? ` Ends early if a player leads by ${p.lead}+ VP.` : ''}<br>${esc(p.mission.brief)}</p>
+    </section>
+    <section class="card"><h3>Rounds <span class="r">army total ${p.total} Supply</span></h3>
+      <div class="tw-wrap"><table class="plan"><tr><th>Round</th><th style="text-align:right">Pool</th><th>Arriving</th><th style="text-align:right">On table</th><th style="text-align:right">Free</th></tr>${rows}</table></div>
+      <p class="small muted" style="margin:8px 0 0">“On table” assumes nothing has died yet — losses free up Supply. Units still in Reserves when the game ends count as destroyed.</p>
+    </section>
+    <section class="card"><h3>Deploy order <span class="r"><button class="btn small" data-act="autoplan">Auto-fill</button> <button class="btn small ghost" data-act="clearplan">Clear</button></span></h3>
+      ${p.units.length ? p.units.map(prow).join('') : '<div class="empty">No units yet.</div>'}
+      ${p.reserve.length && p.units.length ? `<p class="small muted" style="margin:8px 0 0">Not planned: ${esc(p.reserve.map(u => u.label).join(', '))}.</p>` : ''}
+    </section>`;
+  }
+
+  // ── roster tab ──
+  function renderRoster(l) {
+    return `<div class="btnrow">
+      <button class="btn primary" data-act="copytext">Copy text</button>
+      <button class="btn" data-act="print">Print</button>
+      <button class="btn" data-act="sharelink">Copy share link</button>
+      <button class="btn" data-act="dl-txt">Download .txt</button>
+      <button class="btn" data-act="dl-json">Download .json</button>
+    </div><pre class="roster">${esc(E.toText(l))}</pre>`;
+  }
+
+  function printView(l, ev) {
+    const sc = ev.scale;
+    const rows = SLOT_ORDER.flatMap(t => ev.entries.filter(x => x.def && x.def.slot === t)).map(x => `<tr><td><b>${esc(x.label)}</b></td><td>${E.SLOT_NAME[x.def.slot]} · ${x.supply}</td>
+      <td>${esc(x.ups.map(u => u.n).join(', ')) || '—'}${x.ups.some(u => u.sp) ? `<br><span class="muted">${esc(E.loadoutText(E.loadout(x), false).join(' · '))}</span>` : ''}</td><td style="text-align:right">${fmt(x.cost)}</td></tr>`).join('');
+    const cards = [...new Set(ev.cards)].map(c => { const n = ev.cards.filter(z => z === c).length; return `<tr><td>${esc(c.name)}${n > 1 ? ' ×' + n : ''}</td><td>${E.SLOTS.filter(t => c.slots[t]).map(t => `${c.slots[t] * n} ${E.SLOT_NAME[t]}`).join(', ') || '—'}</td><td>${c.res * n} ${ev.race.res}</td><td style="text-align:right">${c.gas * n}</td></tr>`; }).join('');
+    const sheets = ev.entries.filter(x => x.def).map(x => {
+      const eff = E.effective(x), s = eff.stats;
+      return `<div class="ds"><h3>${esc(x.label)} <span class="muted">— ${fmt(x.cost)}</span></h3>
+        <div class="muted">${s.sh != null ? `Shield ${s.sh} · ` : ''}Speed ${esc(s.spd)} · Armour ${esc(s.arm)} · Evade ${esc(s.eva)} · HP ${esc(s.hp)} · Size ${esc(s.size)} · Supply ${x.supply}</div>
+        <div class="muted">${esc(E.loadoutText(E.loadout(x)).join(' · '))}</div>
+        <table><tr><th>Weapon</th><th>Rng</th><th>Tgt</th><th>RoA</th><th>Hit</th><th>Surge</th><th>S.Die</th><th>Dmg</th><th>Keywords</th></tr>
+        ${eff.weapons.map(w => `<tr><td>${esc(w.name)}${w.spec ? ' (1 model)' : ''}</td><td>${esc(w.rng)}</td><td>${esc(w.tgt)}</td><td>${esc(w.roa)}</td><td>${esc(w.hit)}</td><td>${esc(w.surge)}</td><td>${esc(w.sd)}</td><td>${esc(w.dmg)}</td><td>${esc(w.kw.join(', ') || '–')}</td></tr>`).join('')}</table>
+        <ul>${eff.abilities.map(a => `<li><b>${esc(a.n)}</b>${a.t ? ` (${esc(a.t)})` : ''}: ${esc(a.d)}</li>`).join('')}</ul></div>`;
+    }).join('');
+    return `<h1>${esc(l.name)}</h1>
+      <div>${esc(ev.race ? ev.race.name : '')} · ${esc(ev.fac ? ev.fac.name : 'no faction')} · ${sc.name} (${fmt(sc.limit)}) · Minerals ${fmt(ev.minerals)}/${fmt(sc.limit)} · Gas ${fmt(ev.gas)}/${fmt(sc.gasLimit)} · ${ev.res} ${ev.race ? ev.race.res : ''}/round</div>
+      <div>Slots: ${E.SLOTS.filter(t => ev.prov[t] || ev.used[t]).map(t => `${E.SLOT_NAME[t]} ${ev.used[t]}/${ev.prov[t]}`).join(' · ')}${ev.errors.length ? ` · <b>${ev.errors.length} problem(s)</b>` : ' · legal'}</div>
+      <h2>Units</h2><table><tr><th>Unit</th><th>Slot · Supply</th><th>Upgrades / loadout</th><th>Minerals</th></tr>${rows}</table>
+      <h2>Cards</h2><table><tr><th>Card</th><th>Slots</th><th>Resource</th><th>Gas</th></tr>${ev.fac ? `<tr><td>${esc(ev.fac.name)} (Faction)</td><td>${E.SLOTS.filter(t => ev.fac.slots[t]).map(t => `${ev.fac.slots[t]} ${E.SLOT_NAME[t]}`).join(', ')}</td><td>${ev.fac.res} ${ev.race.res}</td><td style="text-align:right">0</td></tr>` : ''}${cards}</table>
+      <h2>Datasheets</h2>${sheets}
+      <div class="foot">Supply Line — unofficial fan tool, not affiliated with Blizzard Entertainment or Archon Studio. StarCraft is a trademark of Blizzard Entertainment. Data: ${esc(GAME.version)}. Ability text paraphrased; the printed cards win.</div>`;
+  }
+
+  // ── modals ──
+  function renderModal(l, ev) {
+    const m = $('#modal');
+    if (!ui.modal) { m.innerHTML = ''; return; }
+    let head = '', body = '';
+    if (ui.modal === 'picker') ({ head, body } = unitPicker(l, ev));
+    if (ui.modal === 'cardpicker') ({ head, body } = cardPicker(l, ev));
+    if (ui.modal === 'lists') ({ head, body } = listsModal(l));
+    if (ui.modal === 'import') ({ head, body } = importModal());
+    const keepScroll = m.querySelector('.pb') ? m.querySelector('.pb').scrollTop : 0;
+    const hadFocus = document.activeElement && document.activeElement.id === 'pickQ';
+    m.innerHTML = `<div class="modal" data-act="close-bg"><div class="panel" role="dialog" aria-modal="true"><div class="ph">${head}</div><div class="pb">${body}</div></div></div>`;
+    const pb = m.querySelector('.pb'); if (pb) pb.scrollTop = keepScroll;
+    if (hadFocus) { const q = $('#pickQ'); q.focus(); q.setSelectionRange(q.value.length, q.value.length); }
+  }
+
+  function unitPicker(l, ev) {
+    const fac = ev.fac;
+    const filters = ['all', ...SLOT_ORDER.filter(t => t !== 'air')];
+    const q = ui.q.trim().toLowerCase();
+    const inList = id => l.units.some(u => u.id === id);
+    const all = GAME.units.filter(u => u.race === l.race && !u.summoned);
+    const shown = all.filter(u => (ui.filter === 'all' || u.slot === ui.filter) && (!q || u.name.toLowerCase().includes(q) || (u.plural || '').toLowerCase().includes(q)));
+    const item = u => {
+      const missing = fac ? u.tags.filter(t => !fac.tags.includes(t)) : [];
+      const why = missing.length ? `Needs ${GAME.factions.filter(f => f.race === l.race && u.tags.every(t => f.tags.includes(t))).map(f => f.name).join(' / ')}`
+        : u.unique && inList(u.id) ? 'Already in your list (Unique)'
+        : u.excl && l.units.some(e => E.units[e.id] && E.units[e.id].excl === u.excl && e.id !== u.id) ? 'The other Nova is already in your list' : '';
+      const peek = ui.peek === u.id;
+      return `<div class="pick${why ? ' dim' : ''}">
+        <div class="top"><span class="nm" data-act="peek" data-id="${u.id}">${esc(u.name)} <span class="badge" style="${slotVar(u.slot)}">${E.SLOT_NAME[u.slot]}</span>
+          ${u.unique ? '<span class="tag uq">Unique</span>' : ''} ${u.tags.length > 1 ? `<span class="tag">${esc(u.tags.slice(1).join(', '))}</span>` : ''} <small class="muted">${peek ? '▲' : 'ⓘ'}</small></span></div>
+        ${why ? `<div class="why">${esc(why)}</div>` : ''}
+        <div class="opts">${u.sizes.map(s => `<button class="chip size" data-act="add" data-id="${u.id}" data-n="${s[0]}">${u.sizes.some(z => z[0] > 1) ? `${s[0]} model${s[0] > 1 ? 's' : ''} · ` : ''}<b>${s[1]}</b> <small>· ${s[2]} Supply</small></button>`).join('')}</div>
+        ${peek ? datasheet(summonedEntry(u)) : ''}
+      </div>`;
+    };
+    const summoned = GAME.units.filter(u => u.race === l.race && u.summoned && (!q || u.name.toLowerCase().includes(q)));
+    const head = `<div class="top"><h2>Add unit</h2><span class="small muted">${fmt(ev.minerals)} / ${fmt(ev.scale.limit)}</span><button class="btn primary" data-act="close">Done</button></div>
+      <input type="search" id="pickQ" data-act="pick-q" placeholder="Search ${esc(GAME.races[l.race].name)} units…" value="${esc(ui.q)}" autocomplete="off">
+      <div class="chips" style="margin:0">${filters.map(f => `<button class="chip${ui.filter === f ? ' on' : ''}" data-act="pick-filter" data-f="${f}">${f === 'all' ? 'All' : E.SLOT_NAME[f]}</button>`).join('')}</div>`;
+    const body = (shown.length ? shown.map(item).join('') : `<div class="empty">No match.</div>`)
+      + (summoned.length && (ui.filter === 'all') ? `<h4 class="pick" style="border:none">Summoned during play — free, no slot (info only)</h4>${summoned.map(u => `<div class="pick"><div class="top"><span class="nm" data-act="peek" data-id="${u.id}">${esc(u.name)} <small class="muted">via ${esc(u.by)} ${ui.peek === u.id ? '▲' : 'ⓘ'}</small></span></div>${ui.peek === u.id ? datasheet(summonedEntry(u)) : ''}</div>`).join('')}` : '');
+    return { head, body };
+  }
+
+  function cardPicker(l, ev) {
+    const fac = ev.fac;
+    const cards = GAME.cards.filter(c => c.race === l.race && c.kind !== 'creep');
+    const gasLeft = ev.scale.gasLimit - ev.gas;
+    const item = c => {
+      const why = c.unique && l.cards.includes(c.id) ? 'Already in your list (Unique)'
+        : fac && c.tags && !c.tags.every(t => fac.tags.includes(t)) ? `Needs ${GAME.factions.filter(f => c.tags.every(t => f.tags.includes(t))).map(f => f.name).join(' / ')}` : '';
+      const peek = ui.peek === c.id;
+      return `<div class="pick${why ? ' dim' : ''}"><div class="top">
+        <span class="nm" data-act="peek" data-id="${c.id}">${esc(c.name)} ${c.unique ? '<span class="tag uq">Unique</span>' : ''} <small class="muted">${peek ? '▲' : 'ⓘ'}</small><br>
+          <small>${slotChips(c.slots)} · ${c.res ? `${c.res} ${ev.race.res}` : `<span style="color:var(--warn)">no ${ev.race.res}</span>`}</small></span>
+        <button class="chip size" data-act="add-card" data-id="${c.id}" ${why && c.unique && l.cards.includes(c.id) ? 'disabled' : ''}><b>${c.gas}</b> <small>Gas${c.gas > gasLeft ? ' · over' : ''}</small></button></div>
+        ${why ? `<div class="why">${esc(why)}</div>` : ''}
+        ${peek ? `<div class="cabl" style="margin-top:6px">${c.abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${esc(a[2])}</div>`).join('')}${c.note ? `<div>${esc(c.note)}</div>` : ''}</div>` : ''}
+      </div>`;
+    };
+    const head = `<div class="top"><h2>Add tactical card</h2><span class="small muted">Gas ${fmt(ev.gas)} / ${fmt(ev.scale.gasLimit)}</span><button class="btn primary" data-act="close">Done</button></div>
+      <div class="slotline" style="display:flex;gap:5px;flex-wrap:wrap">${E.SLOTS.map(t => `<span class="sc ${ev.used[t] > ev.prov[t] ? 'over' : ''}" style="${slotVar(t)}">${E.SLOT_NAME[t]} <b>${ev.used[t]}/${ev.prov[t]}</b></span>`).join('')}</div>`;
+    return { head, body: cards.map(item).join('') };
+  }
+
+  function listsModal(l) {
+    const rows = store.lists.slice().sort((a, b) => b.updated - a.updated).map(x => {
+      const ev = E.evaluate(x);
+      return `<div class="lrow${x.id === l.id ? ' cur' : ''}"><span class="nm"><b>${esc(x.name)}</b><br><small class="muted">${esc(ev.race.name)} · ${esc(ev.fac ? ev.fac.name : 'no faction')} · ${fmt(ev.minerals)}/${fmt(ev.scale.limit)} · ${ev.errors.length ? `<span style="color:var(--bad)">${ev.errors.length} problem${ev.errors.length > 1 ? 's' : ''}</span>` : '<span style="color:var(--ok)">legal</span>'}</small></span>
+        ${x.id === l.id ? '<span class="small muted">open</span>' : `<button class="btn small" data-act="open-list" data-id="${x.id}">Open</button>`}
+        <button class="btn small" data-act="copy-list" data-id="${x.id}">Copy</button>
+        <button class="btn small danger" data-act="delete-list" data-id="${x.id}">Delete</button></div>`;
+    }).join('');
+    const head = `<div class="top"><h2>My lists</h2><button class="btn" data-act="close">Close</button></div>
+      <div class="chips" style="margin:0">${Object.entries(GAME.races).map(([k, r]) => `<button class="btn small primary" data-act="new-list" data-race="${k}">+ New ${r.name}</button>`).join('')}
+        <button class="btn small" data-act="import">Import…</button><button class="btn small" data-act="export-all">Back up all</button></div>`;
+    const ex = E.EXAMPLES.map((x, i) => `<div class="lrow"><span class="nm">${esc(x.name)} <small class="muted">· ${esc(E.factions[x.faction].name)} · ${GAME.scales[x.scale].name}</small></span><button class="btn small" data-act="example" data-i="${i}">Load</button></div>`).join('');
+    const theme = ['auto', 'dark', 'light'].map(t => `<button data-act="theme" data-t="${t}" aria-pressed="${(store.theme || 'auto') === t}">${t[0].toUpperCase() + t.slice(1)}</button>`).join('');
+    return { head, body: rows
+      + `<h4 class="pick" style="border:none;margin:16px 0 0">Example lists (known legal)</h4>${ex}
+      <h4 class="pick" style="border:none;margin:16px 0 6px">Theme</h4><div class="seg">${theme}</div>
+      <p class="small muted" style="margin-top:16px">Lists are saved in this browser only. Use “Back up all” or the Roster tab to keep a copy. Data: ${esc(GAME.version)}.</p>` };
+  }
+
+  function importModal() {
+    const head = `<div class="top"><h2>Import</h2><button class="btn" data-act="close">Close</button></div>`;
+    const body = `<p class="small muted">Paste a list exported from Supply Line — JSON, a backup file, a share link, or the plain-text roster.</p>
+      <textarea id="importText" rows="10" style="width:100%;font:13px ui-monospace,Consolas,monospace" placeholder="Paste here…"></textarea>
+      <div class="btnrow" style="margin-top:8px"><button class="btn primary" data-act="do-import">Import</button>
+      <label class="btn" style="cursor:pointer">Open file…<input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" data-act="import-file" hidden></label></div>`;
+    return { head, body };
+  }
+
+  function importText(text) {
+    text = String(text || '').trim();
+    if (!text) { toast('Nothing to import'); return; }
+    const added = [];
+    try {
+      const hm = text.match(/#l=([\w-]+)/);
+      if (hm) added.push(E.decodeShare(hm[1]));
+      else if (/^[[{]/.test(text)) {
+        const o = JSON.parse(text);
+        const arr = Array.isArray(o) ? o : Array.isArray(o.lists) ? o.lists : [o];
+        arr.forEach(x => added.push(E.normalize({ ...x, id: undefined })));
+      } else added.push(E.fromText(text));
+    } catch (e) { toast('Could not read that — ' + e.message); return; }
+    added.forEach(x => { x.id = E.uid(); store.lists.unshift(x); });
+    store.current = added[0].id; ui.modal = null; ui.open.clear(); persist(); render();
+    toast(added.length > 1 ? `Imported ${added.length} lists` : `Imported “${added[0].name}”`);
+  }
+
+  // ── render ──
+  function render() {
+    const l = cur(), ev = E.evaluate(l);
+    document.documentElement.dataset.race = l.race;
+    const nm = $('#listName'); if (document.activeElement !== nm) nm.value = l.name;
+    $('#bar').innerHTML = renderBar(l, ev);
+    document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === ui.tab)));
+    $('#view').innerHTML = ui.tab === 'sheets' ? renderSheets(l, ev) : ui.tab === 'plan' ? renderPlan(l, ev) : ui.tab === 'roster' ? renderRoster(l, ev) : renderBuild(l, ev);
+    renderModal(l, ev);
+    document.title = `${l.name} — Supply Line`;
+  }
+
+  // ── actions ──
+  const findEntry = uid => cur().units.find(u => u.uid === uid);
+  const A = {
+    tab: t => { ui.tab = t.dataset.tab; render(); window.scrollTo(0, 0); },
+    'goto-problems': () => { ui.tab = 'build'; render(); const p = $('#problems'); if (p) p.scrollIntoView({ behavior: 'smooth', block: 'center' }); },
+    race: t => {
+      const r = t.dataset.race, l = cur();
+      if (r === l.race) return;
+      const hasStuff = l.units.length || l.cards.some(id => E.cards[id] && E.cards[id].kind !== 'creep');
+      if (hasStuff && !confirm(`Switch to ${GAME.races[r].name}? This clears the units and cards in “${l.name}”.`)) return;
+      commit(x => { x.race = r; x.faction = ''; x.units = []; x.deploy = {}; x.cards = GAME.races[r].needsCreep ? ['creep-accel'] : []; });
+    },
+    scale: t => commit(l => { l.scale = t.dataset.scale; }),
+    toggle: t => { const id = t.dataset.uid; ui.open.has(id) ? ui.open.delete(id) : ui.open.add(id); render(); },
+    size: t => commit(() => { findEntry(t.dataset.uid).n = Number(t.dataset.n); }),
+    up: t => commit(() => E.toggleUpgrade(findEntry(t.dataset.uid), t.dataset.up)),
+    dup: t => commit(l => { const e = findEntry(t.dataset.uid); const c = { ...e, uid: E.uid(), up: [...e.up] }; l.units.splice(l.units.indexOf(e) + 1, 0, c); }),
+    remove: t => commit(l => { l.units = l.units.filter(u => u.uid !== t.dataset.uid); delete l.deploy[t.dataset.uid]; ui.open.delete(t.dataset.uid); }),
+    picker: () => { ui.modal = 'picker'; ui.q = ''; ui.peek = null; render(); setTimeout(() => { const q = $('#pickQ'); if (q && matchMedia('(min-width:700px)').matches) q.focus(); }, 0); },
+    cardpicker: () => { ui.modal = 'cardpicker'; ui.peek = null; render(); },
+    lists: () => { ui.modal = 'lists'; render(); },
+    import: () => { ui.modal = 'import'; render(); },
+    close: () => { ui.modal = null; render(); },
+    'close-bg': (t, e) => { if (e.target === t) { ui.modal = null; render(); } },
+    'pick-filter': t => { ui.filter = t.dataset.f; render(); },
+    peek: t => { ui.peek = ui.peek === t.dataset.id ? null : t.dataset.id; render(); },
+    add: t => { let lbl; commit(l => { const e = E.addUnit(l, t.dataset.id, Number(t.dataset.n)); lbl = E.entry(e).label; }); toast(`Added ${lbl}`); },
+    'add-card': t => { commit(l => { l.cards.push(t.dataset.id); }); toast(`Added ${E.cards[t.dataset.id].name}`); },
+    'card-inc': t => commit(l => { l.cards.push(t.dataset.id); }),
+    'card-dec': t => commit(l => { const i = l.cards.lastIndexOf(t.dataset.id); if (i >= 0) l.cards.splice(i, 1); }),
+    'card-remove': t => commit(l => { l.cards = l.cards.filter(id => id !== t.dataset.id); }),
+    'card-toggle': t => { const id = t.dataset.id; ui.openCards.has(id) ? ui.openCards.delete(id) : ui.openCards.add(id); render(); },
+    creep: t => commit(l => { l.cards = l.cards.filter(id => !(E.cards[id] && E.cards[id].kind === 'creep')); l.cards.unshift(t.dataset.id); }),
+    deploy: t => commit(l => { const r = Number(t.dataset.r); if (r) l.deploy[t.dataset.uid] = r; else delete l.deploy[t.dataset.uid]; }),
+    autoplan: () => commit(l => { l.deploy = E.autoPlan(l); }),
+    clearplan: () => commit(l => { l.deploy = {}; }),
+    copytext: () => copy(E.toText(cur())),
+    sharelink: () => {
+      const base = location.href.split('#')[0];
+      copy(`${base}#l=${E.encodeShare(cur())}`);
+    },
+    'dl-txt': () => download(`${fileSafe(cur().name)}.txt`, E.toText(cur())),
+    'dl-json': () => download(`${fileSafe(cur().name)}.json`, JSON.stringify(cur(), null, 2), 'application/json'),
+    'export-all': () => download(`supply-line-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: 'supply-line', lists: store.lists }, null, 2), 'application/json'),
+    print: () => { const l = cur(); $('#print').innerHTML = printView(l, E.evaluate(l)); window.print(); },
+    'new-list': t => { ui.modal = null; ui.tab = 'build'; addList(E.newList({ race: t.dataset.race, name: `New ${GAME.races[t.dataset.race].name} list` }), 'New list created'); },
+    'open-list': t => { store.current = t.dataset.id; ui.modal = null; ui.open.clear(); persist(); render(); },
+    'copy-list': t => { const src = store.lists.find(x => x.id === t.dataset.id); const c = E.normalize({ ...JSON.parse(JSON.stringify(src)), id: E.uid(), name: src.name + ' (copy)' }); ui.modal = null; addList(c, 'List copied'); },
+    'delete-list': t => {
+      const x = store.lists.find(z => z.id === t.dataset.id);
+      if (!confirm(`Delete “${x.name}”? This can't be undone.`)) return;
+      store.lists = store.lists.filter(z => z.id !== x.id);
+      if (!store.lists.length) store.lists.push(E.newList({ name: 'New list' }));
+      if (store.current === x.id) store.current = store.lists[0].id;
+      persist(); render();
+    },
+    example: t => { const x = E.example(Number(t.dataset.i)); x.id = E.uid(); ui.modal = null; ui.tab = 'build'; addList(x, `Loaded “${x.name}”`); },
+    theme: t => { store.theme = t.dataset.t; persist(); applyTheme(); render(); },
+    'do-import': () => importText($('#importText').value),
+  };
+  const CHANGE = {
+    faction: t => commit(l => { l.faction = t.value; if (GAME.races[l.race].needsCreep && !l.cards.some(id => E.cards[id] && E.cards[id].kind === 'creep')) l.cards.unshift('creep-accel'); }),
+    limit: t => commit(l => { l.limit = Math.max(0, Number(t.value) || GAME.scales.grand.limit); }),
+    mission: t => commit(l => { l.mission = t.value; }),
+    rename: t => commit(l => { l.name = t.value.trim() || 'Untitled list'; }),
+    'import-file': t => { const f = t.files && t.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => importText(r.result); r.readAsText(f); },
+  };
+  document.addEventListener('click', e => {
+    const t = e.target.closest('[data-act]');
+    if (!t || !A[t.dataset.act] || t.tagName === 'SELECT' || t.tagName === 'INPUT') return;
+    A[t.dataset.act](t, e);
+  });
+  document.addEventListener('change', e => { const t = e.target.closest('[data-act]'); if (t && CHANGE[t.dataset.act]) CHANGE[t.dataset.act](t, e); });
+  document.addEventListener('input', e => {
+    const t = e.target;
+    if (t.dataset.act === 'pick-q') { ui.q = t.value; render(); }
+    if (t.dataset.act === 'rename') { cur().name = t.value; persist(); }
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && ui.modal) { ui.modal = null; render(); }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('header[data-act="toggle"]')) { e.preventDefault(); A.toggle(e.target); }
+    if (e.key === 'Enter' && e.target.id === 'listName') e.target.blur();
+  });
+  window.addEventListener('storage', e => { if (e.key === KEY) { store = load(); render(); } });
+
+  // ── boot ──
+  $('#dataver').textContent = `Data: ${GAME.version}. Supply Line is free, has no ads, and keeps your lists in this browser.`;
+  applyTheme();
+  const hm = location.hash.match(/^#l=([\w-]+)/);
+  if (hm) {
+    try { const x = E.decodeShare(hm[1]); x.id = E.uid(); x.name = x.name || 'Shared list'; store.lists.unshift(x); store.current = x.id; persist(); setTimeout(() => toast(`Opened shared list “${x.name}”`), 50); }
+    catch (e) { setTimeout(() => toast('That share link is broken'), 50); }
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  render();
+})();
+</script>
+</body>
+</html>
