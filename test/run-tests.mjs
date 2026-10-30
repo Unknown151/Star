@@ -34,6 +34,39 @@ const slots = ev => Object.fromEntries(E.SLOTS.filter(t => ev.used[t] || ev.prov
 const errs = ev => ev.errors.map(p => p.msg);
 
 // ── every known-legal list (StarCraft TMG Reference/Army-Lists.md) ──
+// The app only ships the Founders box lists as examples; the rest live here as test fixtures.
+const REFERENCE = [
+  { name: `The Golden Armada`, race: 'protoss', faction: 'khalai', scale: 'standard',
+    units: [['artanis', 1], ['immortal', 1, ['Shield Overcharge']], ['stalker', 2, ['Path of Shadows', 'Fury of the Nerazim']],
+      ['stalker', 1, ['Path of Shadows']], ['zealot', 3, ['Leg Enhancements', 'My Life for Aiur']],
+      ['zealot', 3, ['Leg Enhancements', 'My Life for Aiur', 'Zealous Round']], ['adept', 4, ['Glaive Strike', 'Resonating Glaives', 'Guidance']],
+      ['sentry', 2, ['Solid-Field Projectors']], ['hightemplar', 2, ['Psionic Storm']]],
+    cards: ['gateway', 'robotics', 'twilight-council', 'archives', 'warpprism', 'observer'] },
+  { name: `Anvil of Aiur`, race: 'protoss', faction: 'khalai', scale: 'skirmish',
+    units: [['artanis', 1], ['immortal', 1, ['Shield Overcharge']],
+      ['zealot', 3, ['Leg Enhancements', 'My Life for Aiur', 'We Stand as One', 'Zealous Round']], ['stalker', 1, ['Path of Shadows', 'Fury of the Nerazim']]],
+    cards: ['gateway', 'robotics', 'observer'] },
+  { name: `Daelaam Stalkers`, race: 'protoss', faction: 'daelaam', scale: 'skirmish',
+    units: [['zealot', 3, ['My Life for Aiur', 'Leg Enhancements', 'We Stand as One', 'Zealous Round']],
+      ['adept', 4, ['Resonating Glaives', 'Glaive Strike', 'Guidance']], ['sentry', 2, ['Solid-Field Projectors', 'Hallucination']],
+      ['stalker', 1, ['Path of Shadows', 'Fury of the Nerazim']], ['stalker', 1, ['Path of Shadows', 'Fury of the Nerazim']]],
+    cards: ['forge', 'twilight-council', 'observer'] },
+  { name: `Kerrigan's Fist`, race: 'zerg', faction: 'ks', scale: 'standard',
+    units: [['kerrigan', 1], ['raptor', 18, ['Shredding Claws', 'Adrenal Glands']], ['zergling', 18, ['Shredding Claws', 'Adrenal Glands']],
+      ['ksraptor', 6], ['roach', 3, ['Glial Reconstitution', 'Tunneling Claws', 'Hydriodic Bile']], ['hydralisk', 4, ['Grooved Spines', 'Ancillary Carapace']],
+      ['ravager', 2, ['Potent Bile']], ['queen', 1, ['Creep Speed', 'Domineering Presence']]],
+    cards: ['creep-malignant', 'warren', 'evo', 'hydraden', 'overlord', 'lair', 'overseer'] },
+  { name: `Kerrigan's Fist — Defiler`, race: 'zerg', faction: 'ks', scale: 'standard',
+    units: [['kerrigan', 1], ['raptor', 18, ['Shredding Claws', 'Adrenal Glands']], ['zergling', 18, ['Shredding Claws', 'Adrenal Glands']],
+      ['ksraptor', 6], ['roach', 3, ['Glial Reconstitution', 'Tunneling Claws']], ['hydralisk', 4, ['Grooved Spines', 'Ancillary Carapace']],
+      ['ravager', 1, ['Potent Bile']], ['queen', 1, ['Creep Speed']], ['defiler', 1, ['Plague']]],
+    cards: ['creep-malignant', 'warren', 'evo', 'hydraden', 'overlord', 'defilermound', 'overseer'] },
+  ...E.EXAMPLES,
+];
+const ref = name => {
+  const x = REFERENCE.find(r => r.name === name);
+  return E.normalize({ ...x, units: x.units.map(([id, n, up]) => ({ id, n, up: up || [] })) });
+};
 const LEGAL = {
   'The Golden Armada': { minerals: 2000, gas: 200, res: 7, slots: { core: [5, 6], elite: [5, 5], support: [2, 4], hero: [1, 1] } },
   'Anvil of Aiur': { minerals: 1000, gas: 85, res: 4, slots: { core: [2, 4], elite: [3, 4], support: [0, 1], hero: [1, 1] } },
@@ -43,11 +76,11 @@ const LEGAL = {
   "Kerrigan's Fist — Defiler": { minerals: 2000, gas: 185, res: 7, slots: { core: [4, 6], elite: [6, 6], support: [2, 2], hero: [1, 2] } },
   "Founders box — Raynor's Raiders": { minerals: 1000, gas: 95, res: 4, slots: { core: [3, 5], support: [1, 3], air: [0, 1], hero: [1, 1] } },
 };
-E.EXAMPLES.forEach((x, i) => {
+REFERENCE.forEach(x => {
   test(`legal: ${x.name}`, () => {
     const want = LEGAL[x.name];
     ok(want, `no expectation for ${x.name}`);
-    const ev = E.evaluate(E.example(i));
+    const ev = E.evaluate(ref(x.name));
     eq(errs(ev), [], 'errors');
     eq(ev.minerals, want.minerals, 'minerals');
     eq(ev.gas, want.gas, 'gas');
@@ -55,10 +88,11 @@ E.EXAMPLES.forEach((x, i) => {
     eq(slots(ev), want.slots, 'slots used/provided');
   });
 });
-test('every expected list exists as an example', () => eq(E.EXAMPLES.map(x => x.name).sort(), Object.keys(LEGAL).sort()));
+test('every expected list is a fixture', () => eq(REFERENCE.map(x => x.name).sort(), Object.keys(LEGAL).sort()));
+test('the app ships only the Founders box lists as examples', () => eq(E.EXAMPLES.map(x => x.name), ['Founders box — Khalai', "Founders box — Raynor's Raiders"]));
 
 // ── failures that must be caught ──
-const fist = () => E.example(E.EXAMPLES.findIndex(x => x.name === "Kerrigan's Fist"));
+const fist = () => ref("Kerrigan's Fist");
 test("Kerrigan's Fist with Spawning Pool + Six Pool instead of Lair + Overlord is 2 Elite short", () => {
   const l = fist();
   l.cards = l.cards.filter(id => id !== 'lair' && id !== 'overlord').concat(['pool', 'sixpool']);
@@ -69,7 +103,7 @@ test("Kerrigan's Fist with Spawning Pool + Six Pool instead of Lair + Overlord i
   ok(/Hydralisk Den/.test(ev.errors[0].msg), 'suggests Hydralisk Den');
 });
 
-const khalaiFounders = () => E.example(E.EXAMPLES.findIndex(x => x.name === 'Founders box — Khalai'));
+const khalaiFounders = () => ref('Founders box — Khalai');
 test('Khalai with Sentries but no Support-slot card fails', () => {
   const l = khalaiFounders();
   l.cards = l.cards.filter(id => id !== 'observer');
@@ -286,9 +320,9 @@ test('card usage and round survive save/load', () => {
 });
 
 // ── export / import ──
-E.EXAMPLES.forEach((x, i) => {
+REFERENCE.forEach(x => {
   test(`text round trip: ${x.name}`, () => {
-    const a = E.example(i), b = E.fromText(E.toText(a));
+    const a = ref(x.name), b = E.fromText(E.toText(a));
     const ea = E.evaluate(a), eb = E.evaluate(b);
     eq([eb.minerals, eb.gas, b.race, b.faction, b.scale, b.units.length, b.name], [ea.minerals, ea.gas, a.race, a.faction, a.scale, a.units.length, a.name]);
     const key = l => l.units.map(u => JSON.stringify([u.id, u.n, [...u.up].sort()])).sort();
@@ -296,13 +330,13 @@ E.EXAMPLES.forEach((x, i) => {
     eq([...b.cards].sort(), [...a.cards].sort());
   });
   test(`share link round trip: ${x.name}`, () => {
-    const a = E.example(i), b = E.decodeShare(E.encodeShare(a));
+    const a = ref(x.name), b = E.decodeShare(E.encodeShare(a));
     eq(E.evaluate(b).minerals, E.evaluate(a).minerals);
     eq(b.units.map(u => [u.id, u.n, u.up]), a.units.map(u => [u.id, u.n, u.up]));
   });
 });
 // ── NewRecruit text format ──
-const armada = () => E.example(E.EXAMPLES.findIndex(x => x.name === 'The Golden Armada'));
+const armada = () => ref('The Golden Armada');
 test('NewRecruit export: Golden Armada', () => {
   eq(E.toNewRecruit(armada()).split('\n'), [
     'The Golden Armada - Protoss (2000 Minerals, 200 Gas)',
@@ -461,7 +495,7 @@ function ttsCheck(text) {
   if (!units) problems.push('no units');
   return problems;
 }
-E.EXAMPLES.forEach((x, i) => test(`Tabletop Simulator importer accepts: ${x.name}`, () => eq(ttsCheck(E.toNewRecruit(E.example(i))), [])));
+REFERENCE.forEach(x => test(`Tabletop Simulator importer accepts: ${x.name}`, () => eq(ttsCheck(E.toNewRecruit(ref(x.name))), [])));
 test('Tabletop Simulator importer accepts duplicate cards, Nova and Zerg creep', () => {
   eq(ttsCheck(E.toNewRecruit(list('terran', 'nco', 'standard', [['nova-assault', 1], ['siegetank', 1, ['Mode Transformation']]], ['factory', 'factory', 'supplydepot']))), []);
   eq(ttsCheck(E.toNewRecruit(list('zerg', 'ks', 'standard', [['zergling', 12]], ['creep-malignant', 'pool', 'pool']))), []);
@@ -472,8 +506,8 @@ test('NewRecruit import: Nova written as "Nova: <mode>"', () => {
   eq(l.units.map(u => [u.id, u.up]), [['nova-assault', []]]);
   eq(l.cards, ['supplydepot', 'supplydepot']);
 });
-E.EXAMPLES.forEach((x, i) => test(`NewRecruit round trip: ${x.name}`, () => {
-  const a = E.example(i), b = E.fromText(E.toNewRecruit(a));
+REFERENCE.forEach(x => test(`NewRecruit round trip: ${x.name}`, () => {
+  const a = ref(x.name), b = E.fromText(E.toNewRecruit(a));
   const key = l => l.units.map(u => JSON.stringify([u.id, u.n, [...u.up].sort()])).sort();
   eq([b.name, b.race, b.faction, b.scale, [...b.cards].sort()], [a.name, a.race, a.faction, a.scale, [...a.cards].sort()]);
   eq(key(b), key(a));

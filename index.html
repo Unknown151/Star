@@ -2064,36 +2064,11 @@ const Engine = (() => {
       units: (o.u || []).map(([id, n, up]) => ({ id, n, up: up || [] })) });
   }
 
-  // ── known-legal example lists (from the reference list checks) ──
+  // ── example lists: the Founders box contents, legal at current costs ──
   const EXAMPLES = [
-    { name: `The Golden Armada`, race: 'protoss', faction: 'khalai', scale: 'standard',
-      units: [['artanis', 1], ['immortal', 1, ['Shield Overcharge']], ['stalker', 2, ['Path of Shadows', 'Fury of the Nerazim']],
-        ['stalker', 1, ['Path of Shadows']], ['zealot', 3, ['Leg Enhancements', 'My Life for Aiur']],
-        ['zealot', 3, ['Leg Enhancements', 'My Life for Aiur', 'Zealous Round']], ['adept', 4, ['Glaive Strike', 'Resonating Glaives', 'Guidance']],
-        ['sentry', 2, ['Solid-Field Projectors']], ['hightemplar', 2, ['Psionic Storm']]],
-      cards: ['gateway', 'robotics', 'twilight-council', 'archives', 'warpprism', 'observer'] },
-    { name: `Anvil of Aiur`, race: 'protoss', faction: 'khalai', scale: 'skirmish',
-      units: [['artanis', 1], ['immortal', 1, ['Shield Overcharge']],
-        ['zealot', 3, ['Leg Enhancements', 'My Life for Aiur', 'We Stand as One', 'Zealous Round']], ['stalker', 1, ['Path of Shadows', 'Fury of the Nerazim']]],
-      cards: ['gateway', 'robotics', 'observer'] },
     { name: `Founders box — Khalai`, race: 'protoss', faction: 'khalai', scale: 'skirmish',
       units: [['zealot', 3, ['My Life for Aiur']], ['praetor', 3], ['adept', 4], ['sentry', 2], ['artanis', 1]],
       cards: ['gateway', 'warpprism', 'observer'] },
-    { name: `Daelaam Stalkers`, race: 'protoss', faction: 'daelaam', scale: 'skirmish',
-      units: [['zealot', 3, ['My Life for Aiur', 'Leg Enhancements', 'We Stand as One', 'Zealous Round']],
-        ['adept', 4, ['Resonating Glaives', 'Glaive Strike', 'Guidance']], ['sentry', 2, ['Solid-Field Projectors', 'Hallucination']],
-        ['stalker', 1, ['Path of Shadows', 'Fury of the Nerazim']], ['stalker', 1, ['Path of Shadows', 'Fury of the Nerazim']]],
-      cards: ['forge', 'twilight-council', 'observer'] },
-    { name: `Kerrigan's Fist`, race: 'zerg', faction: 'ks', scale: 'standard',
-      units: [['kerrigan', 1], ['raptor', 18, ['Shredding Claws', 'Adrenal Glands']], ['zergling', 18, ['Shredding Claws', 'Adrenal Glands']],
-        ['ksraptor', 6], ['roach', 3, ['Glial Reconstitution', 'Tunneling Claws', 'Hydriodic Bile']], ['hydralisk', 4, ['Grooved Spines', 'Ancillary Carapace']],
-        ['ravager', 2, ['Potent Bile']], ['queen', 1, ['Creep Speed', 'Domineering Presence']]],
-      cards: ['creep-malignant', 'warren', 'evo', 'hydraden', 'overlord', 'lair', 'overseer'] },
-    { name: `Kerrigan's Fist — Defiler`, race: 'zerg', faction: 'ks', scale: 'standard',
-      units: [['kerrigan', 1], ['raptor', 18, ['Shredding Claws', 'Adrenal Glands']], ['zergling', 18, ['Shredding Claws', 'Adrenal Glands']],
-        ['ksraptor', 6], ['roach', 3, ['Glial Reconstitution', 'Tunneling Claws']], ['hydralisk', 4, ['Grooved Spines', 'Ancillary Carapace']],
-        ['ravager', 1, ['Potent Bile']], ['queen', 1, ['Creep Speed']], ['defiler', 1, ['Plague']]],
-      cards: ['creep-malignant', 'warren', 'evo', 'hydraden', 'overlord', 'defilermound', 'overseer'] },
     { name: `Founders box — Raynor's Raiders`, race: 'terran', faction: 'rr', scale: 'skirmish',
       units: [['marine', 6], ['raider', 6], ['marauder', 2, ['Kinetic Foam']], ['medic', 3, ['Stabilizer Medpacks']], ['raynor', 1]],
       cards: ['barracks', 'academy', 'orbital'] },
@@ -2616,7 +2591,7 @@ const Engine = (() => {
     const isLight = store.theme === 'light';
     const theme = [['dark', 'Command console'], ['light', 'Daylight']].map(([t, name]) => `<button data-act="theme" data-t="${t}" aria-pressed="${(t === 'light') === isLight}">${name}</button>`).join('');
     return { head, body: rows
-      + `<h4 class="pick" style="border:none;margin:16px 0 0">Example lists (known legal)</h4>${ex}
+      + `<h4 class="pick" style="border:none;margin:16px 0 0">Founders box lists</h4>${ex}
       <h4 class="pick" style="border:none;margin:16px 0 6px">Theme</h4><div class="seg">${theme}</div>
       <p class="small muted" style="margin-top:16px">Lists are saved in this browser only. Use “Back up all” or the Roster tab to keep a copy. Data: ${esc(GAME.version)}.</p>` };
   }
