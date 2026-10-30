@@ -230,6 +230,42 @@ test('auto-plan never overfills a Round', () => {
   ok(p.units.every(u => u.round >= 1), 'everything planned');
 });
 
+// ── card layout: phases, Models / Supply, cards in play ──
+test('ability timing splits into phase, kind, cost and extras', () => {
+  eq(E.timing('Assault · Reaction · 0 CP · Once per Game'), { phase: 'Assault', kind: 'Reaction', cost: '0 CP', extra: ['Once per Game'] });
+  eq(E.timing('Movement · Active · X CP · REPEATABLE'), { phase: 'Movement', kind: 'Active', cost: 'X CP', extra: ['REPEATABLE'] });
+  eq(E.timing('Assault · Active · 1–3 BM').cost, '1–3 BM');
+  eq(E.timing('Passive').phase, 'Any');
+});
+test('Immortal abilities sit in the phases printed on its card', () => {
+  const eff = E.effective(X('immortal', 1, ['Shield Overcharge']));
+  const at = n => eff.abilities.find(a => a.n === n).phase;
+  eq([at('Improved Barrier'), at('Indomitable'), at('Devastating Charge'), at('Shield Overcharge')], ['Any', 'Assault', 'Assault', 'Any']);
+});
+test('every unit ability, upgrade and card ability has a printed phase', () => {
+  const bad = [];
+  GAME.units.forEach(u => {
+    (u.abilities || []).forEach(a => { if (!E.PHASES.includes(a[1].split(' · ')[0])) bad.push(`${u.id}/${a[0]}`); });
+    (u.upgrades || []).filter(x => x.t).forEach(x => { if (!E.PHASES.includes(x.t.split(' · ')[0])) bad.push(`${u.id}/${x.n}`); });
+  });
+  [...GAME.factions, ...GAME.cards].forEach(c => c.abilities.forEach(a => { if (!E.PHASES.includes(a[1].split(' · ')[0])) bad.push(`${c.id}/${a[0]}`); }));
+  eq(bad, []);
+});
+test('Models / Supply boxes mark the starting bracket', () => {
+  eq(E.supplyProfile(E.units.zergling, 18), [{ models: '1-6', supply: '0', cur: false }, { models: '7-12', supply: '1', cur: false }, { models: '13-18', supply: '2', cur: true }]);
+  eq(E.supplyProfile(E.units.immortal, 1), [{ models: '1', supply: '2', cur: true }]);
+  eq(E.supplyProfile(E.units.pdd, 1), [{ models: '1', supply: '0', cur: true }]);
+});
+test('cards in play: faction first, each copy keyed, creep is passive', () => {
+  const l = list('zerg', 'ks', 'standard', [], ['creep-malignant', 'pool', 'pool', 'lair']);
+  eq(E.cardsInPlay(l).map(c => [c.key, c.passive]), [['fac', false], ['creep-malignant#1', true], ['pool#1', false], ['pool#2', false], ['lair#1', false]]);
+});
+test('card usage and round survive save/load', () => {
+  const l = E.normalize({ ...list('terran', 'rr', 'skirmish', [], ['barracks']), used: { 'barracks#1': true }, round: 3 });
+  eq([l.used, l.round], [{ 'barracks#1': true }, 3]);
+  eq(E.normalize({}).round, 1);
+});
+
 // ── export / import ──
 E.EXAMPLES.forEach((x, i) => {
   test(`text round trip: ${x.name}`, () => {

@@ -25,14 +25,14 @@
 <script id="game-data">
 const BURROW_AMBUSH = `When it Deploys, may PLACE (18) from your Entry Edge instead (no model within 10″ of enemies); its activation then ends.`;
 const ROACH_UPGRADES = [
-  { n:`Tunneling Claws`, c:10, t:`Passive`, d:`While BURROWED it can Move and Run without losing the status and pass through other units' bases (not Force Fields).` },
-  { n:`Burrow Ambush`, c:20, t:`Passive`, d:BURROW_AMBUSH },
+  { n:`Tunneling Claws`, c:10, t:`Any · Passive`, d:`While BURROWED it can Move and Run without losing the status and pass through other units' bases (not Force Fields).` },
+  { n:`Burrow Ambush`, c:20, t:`Movement · Passive`, d:BURROW_AMBUSH },
   { n:`Glial Reconstitution`, c:10, t:`Movement · Active · 1 BM`, d:`BUFF Speed (1), or (2) if ON CREEP. Doesn't stack with Wild Mutation. (Roach/Corpser cards misprint the cost as 1 CP.)` },
-  { n:`Hydriodic Bile`, c:10, t:`Passive`, d:`Acid Saliva gets Surge Light and S Dice D3+1.`, fx:[{ w:`Acid Saliva`, set:{ surge:`Light`, sd:`D3+1` } }] },
+  { n:`Hydriodic Bile`, c:10, t:`Assault · Passive`, d:`Acid Saliva gets Surge Light and S Dice D3+1.`, fx:[{ w:`Acid Saliva`, set:{ surge:`Light`, sd:`D3+1` } }] },
 ];
 const ROACH_ABILITIES = [
   [`Burrow`, `Any · Active · 2 BM`, `If unengaged, gain or lose BURROWED.`],
-  [`Regeneration`, `Passive`, `HEAL (2) when it activates while BURROWED.`],
+  [`Regeneration`, `Combat · Passive`, `HEAL (2) when it activates while BURROWED.`],
 ];
 
 const GAME = {
@@ -78,21 +78,21 @@ const GAME = {
       abilities:[
         [`Brood Instinct`, `Any · Reaction`, `+1 to a friendly Evade roll.`],
         [`Rapid Burrowing`, `Movement · Active`, `A friendly unengaged Ground Zerg unit becomes BURROWED, even if it has already activated this Round.`],
-        [`Zerg Creep`, `Army building`, `Take exactly one Creep card.`],
+        [`Zerg Creep`, `Any · Passive`, `Take exactly one Creep card.`],
       ] },
     { id:'ks', race:'zerg', name:`Kerrigan's Swarm`, tags:['ZERG', `KERRIGAN'S SWARM`], res:1,
       slots:{ core:3, elite:2, hero:1 }, summons:['omega'],
       abilities:[
         [`Wild Mutation`, `Any · Active`, `If the active unit is ON CREEP: BUFF Speed (1) and its first weapon gains PRECISION (1).`],
         [`Omega Network`, `Movement · Active`, `If you have no Omega Worm, set one on Ground Level more than 10″ from enemies (it can't use abilities that Round, except Structure).`],
-        [`Zerg Creep`, `Army building`, `Take exactly one Creep card.`],
+        [`Zerg Creep`, `Any · Passive`, `Take exactly one Creep card.`],
       ] },
     { id:'zgs', race:'zerg', name:`Zagara's Swarm`, tags:['ZERG', `ZAGARA'S SWARM`], res:1,
       slots:{ core:4, support:1, hero:1 },
       abilities:[
         [`Instinctive Reaction`, `Any · Reaction`, `When an enemy declares a close combat attack on a friendly unit, that unit may Evade.`],
         [`Scourge Queen`, `Combat · Active`, `If the active unit has more models than all enemies engaged with it combined, its melee weapons gain INSTANT and PRECISION (4).`],
-        [`Zerg Creep`, `Army building`, `Take exactly one Creep card.`],
+        [`Zerg Creep`, `Any · Passive`, `Take exactly one Creep card.`],
       ] },
 
     { id:'khalai', race:'protoss', name:`Khalai`, tags:['PROTOSS', 'KHALAI'], res:1,
@@ -174,21 +174,21 @@ const GAME = {
     // Zerg — creep cards
     { id:'creep-accel', race:'zerg', kind:'creep', name:`Accelerating Creep`, gas:0, res:0, unique:1, slots:{},
       abilities:[
-        [`Speed on Creep`, `Passive`, `The active friendly Zerg unit gets +1 Speed while ON CREEP.`],
-        [`Living Glob of Tissue`, `Passive`, `Creep Tumors have STAY IN PLAY and DISPLACEMENT.`],
-        [`Creep Removal`, `Passive`, `An enemy ending a move, deploy, run, charge or disengage within 1″ of a friendly Creep Tumor removes it.`],
+        [`Speed on Creep`, `Any · Passive`, `The active friendly Zerg unit gets +1 Speed while ON CREEP.`],
+        [`Living Glob of Tissue`, `Any · Passive`, `Creep Tumors have STAY IN PLAY and DISPLACEMENT.`],
+        [`Creep Removal`, `Any · Passive`, `An enemy ending a move, deploy, run, charge or disengage within 1″ of a friendly Creep Tumor removes it.`],
       ] },
     { id:'creep-malignant', race:'zerg', kind:'creep', name:`Malignant Creep`, gas:10, res:0, unique:1, tags:['ZERG', `KERRIGAN'S SWARM`], slots:{},
       abilities:[
-        [`Malevolent Matriarch`, `Passive`, `A friendly Zerg unit that declares a Charge while ON CREEP gets +1 to its IMPACT hit rolls.`],
-        [`Living Glob of Tissue`, `Passive`, `Creep Tumors have STAY IN PLAY and DISPLACEMENT.`],
-        [`Creep Removal`, `Passive`, `Enemies ending a move within 1″ of a friendly Creep Tumor remove it.`],
+        [`Malevolent Matriarch`, `Assault · Passive`, `A friendly Zerg unit that declares a Charge while ON CREEP gets +1 to its IMPACT hit rolls.`],
+        [`Living Glob of Tissue`, `Any · Passive`, `Creep Tumors have STAY IN PLAY and DISPLACEMENT.`],
+        [`Creep Removal`, `Any · Passive`, `Enemies ending a move within 1″ of a friendly Creep Tumor remove it.`],
       ] },
     { id:'creep-reactive', race:'zerg', kind:'creep', name:`Reactive Creep`, gas:10, res:0, unique:1, tags:['ZERG', `ZAGARA'S SWARM`], slots:{},
       abilities:[
-        [`Reactive Tissue`, `Passive`, `Friendly Zerg units ON CREEP have DODGE (1) against attacks.`],
-        [`Living Glob of Tissue`, `Passive`, `Creep Tumors have STAY IN PLAY and DISPLACEMENT.`],
-        [`Creep Removal`, `Passive`, `Enemies ending a move within 1″ of a friendly Creep Tumor remove it.`],
+        [`Reactive Tissue`, `Any · Passive`, `Friendly Zerg units ON CREEP have DODGE (1) against attacks.`],
+        [`Living Glob of Tissue`, `Any · Passive`, `Creep Tumors have STAY IN PLAY and DISPLACEMENT.`],
+        [`Creep Removal`, `Any · Passive`, `Enemies ending a move within 1″ of a friendly Creep Tumor remove it.`],
       ] },
     // Zerg — tactical
     { id:'pool', race:'zerg', name:`Spawning Pool`, gas:25, res:1, slots:{ core:1 },
@@ -310,8 +310,8 @@ const GAME = {
         { n:`Combat Shield`, c:[20,30], t:`Movement · Active · 1 CP`, d:`The unit can Evade close combat attacks and Damage from enemy abilities.` },
         { n:`AGG-12`, c:10, sp:1, rep:`C-14 Rifle`, w:`AGG-12 | 12″ | Ground | 2 | 3+ | Armoured | D3 | 1 | LONG RANGE (18″), SPECIALIST` },
         { n:`Rocket Launcher`, c:40, sp:1, w:`Rocket Launcher | 12″ | Ground | 4 | 3+ | – | – | 1 | INDIRECT FIRE, LONG RANGE (18″), SIDEARM, SPECIALIST` },
-        { n:`Slugthrower`, c:[10,20], t:`Passive`, d:`C-14 gains ANTI-EVADE (1) against targets within 8″.`, fx:[{ w:`C-14 Rifle`, kw:`ANTI-EVADE (1) within 8″` }] },
-        { n:`Grenades – Frag`, c:10, t:`Passive`, d:`C-14 uses a D6 S Dice against targets within 8″.`, fx:[{ w:`C-14 Rifle`, kw:`S Dice D6 within 8″` }] },
+        { n:`Slugthrower`, c:[10,20], t:`Assault · Passive`, d:`C-14 gains ANTI-EVADE (1) against targets within 8″.`, fx:[{ w:`C-14 Rifle`, kw:`ANTI-EVADE (1) within 8″` }] },
+        { n:`Grenades – Frag`, c:10, t:`Assault · Passive`, d:`C-14 uses a D6 S Dice against targets within 8″.`, fx:[{ w:`C-14 Rifle`, kw:`S Dice D6 within 8″` }] },
         { n:`Bayonet`, c:[20,30], rep:`Strike`, w:`Bayonet | E | Ground | 2 | 5+ | – | – | 1 | –` },
       ] },
 
@@ -325,10 +325,10 @@ const GAME = {
       ],
       abilities:[
         [`Stimpack`, `Movement · Active · 1 CP`, `Take NON-LETHAL DAMAGE (2), gain BUFF Speed (3); C-14 and melee weapons gain PRECISION (3).`],
-        [`Raiders Roll!`, `Passive`, `When deploying from Reserves it may Stimpack for 1 CP less (min 0).`],
-        [`Rapid Reinforcements`, `Passive`, `When deploying from Reserves it may PLACE (10) from another friendly unit (not a Structure), no model within 8″ of enemies; activation ends.`],
-        [`Slugthrower`, `Passive`, `C-14 gains ANTI-EVADE (1) within 8″.`],
-        [`Grenades – Frag`, `Passive`, `C-14 uses a D6 S Dice within 8″.`],
+        [`Raiders Roll!`, `Movement · Passive`, `When deploying from Reserves it may Stimpack for 1 CP less (min 0).`],
+        [`Rapid Reinforcements`, `Movement · Passive`, `When deploying from Reserves it may PLACE (10) from another friendly unit (not a Structure), no model within 8″ of enemies; activation ends.`],
+        [`Slugthrower`, `Assault · Passive`, `C-14 gains ANTI-EVADE (1) within 8″.`],
+        [`Grenades – Frag`, `Assault · Passive`, `C-14 uses a D6 S Dice within 8″.`],
       ] },
 
     { id:'marauder', race:'terran', name:`Marauder`, slot:'core', role:`Tank`, base:`50mm`,
@@ -344,9 +344,9 @@ const GAME = {
         [`Concussive Shells`, `Assault · Reaction · 1 CP`, `When an enemy declares a Charge on a friendly unit within 8″, it gets DEBUFF Speed (2). LoS needed only to the charged unit.`],
       ],
       upgrades:[
-        { n:`Veteran of Tarsonis`, c:[20,40], t:`Passive`, d:`Armour improves by 1 while within 3″ of a Mission Marker.` },
-        { n:`Kinetic Foam`, c:[20,40], t:`Passive`, d:`+1 Hit Points.`, fx:[{ stat:'hp', add:1 }] },
-        { n:`Laser Targeting Systems`, c:[20,40], t:`Passive`, d:`Quad K12 gains LONG RANGE (16″).`, fx:[{ w:`Quad K12`, kw:`LONG RANGE (16″)` }] },
+        { n:`Veteran of Tarsonis`, c:[20,40], t:`Any · Passive`, d:`Armour improves by 1 while within 3″ of a Mission Marker.` },
+        { n:`Kinetic Foam`, c:[20,40], t:`Any · Passive`, d:`+1 Hit Points.`, fx:[{ stat:'hp', add:1 }] },
+        { n:`Laser Targeting Systems`, c:[20,40], t:`Assault · Passive`, d:`Quad K12 gains LONG RANGE (16″).`, fx:[{ w:`Quad K12`, kw:`LONG RANGE (16″)` }] },
       ] },
 
     { id:'specops', race:'terran', name:`Spec Ops Marauder`, slot:'core', role:`Damage Dealer`, base:`50mm`,
@@ -360,8 +360,8 @@ const GAME = {
       abilities:[
         [`Spec Ops Armour`, `Any · Active · 1 CP`, `HIDDEN until it performs another action.`],
         [`Commando Stimpack`, `Movement · Active · 1 CP`, `BUFF Speed (3); Quad K12 and melee weapons gain PRECISION (2). No self-damage.`],
-        [`Magrail Munitions`, `Passive`, `Its first Quad K12 attack of the game has PIERCE Armoured (3).`],
-        [`Suppression Shells`, `Reaction · 1 CP`, `When an enemy declares a Charge on a friendly unit within 8″, it gets DEBUFF Speed (3).`],
+        [`Magrail Munitions`, `Assault · Passive`, `Its first Quad K12 attack of the game has PIERCE Armoured (3).`],
+        [`Suppression Shells`, `Assault · Reaction · 1 CP`, `When an enemy declares a Charge on a friendly unit within 8″, it gets DEBUFF Speed (3).`],
       ] },
 
     { id:'medic', race:'terran', name:`Medic`, slot:'support', role:`Lifesaver`, base:`32mm`,
@@ -376,9 +376,9 @@ const GAME = {
         [`Optical Flare`, `Movement · Active · 2 CP`, `An enemy within 12″ gets DEBUFF Range (4) on ranged weapons and can't use LONG RANGE until End of Round.`],
       ],
       upgrades:[
-        { n:`Advanced Medic Facilities`, c:60, t:`Passive`, d:`The unit counts as 0 Supply for the Supply Pool (it still uses its Army Slot).`, fx:[{ pool0:1 }] },
-        { n:`Stabilizer Medpacks`, c:20, t:`Passive`, d:`Life Support and Medpack count one extra Medic in range.` },
-        { n:`A-13 Flash Grenade Launcher`, c:20, t:`Passive`, d:`Optical Flare reaches 16″.` },
+        { n:`Advanced Medic Facilities`, c:60, t:`Any · Passive`, d:`The unit counts as 0 Supply for the Supply Pool (it still uses its Army Slot).`, fx:[{ pool0:1 }] },
+        { n:`Stabilizer Medpacks`, c:20, t:`Any · Passive`, d:`Life Support and Medpack count one extra Medic in range.` },
+        { n:`A-13 Flash Grenade Launcher`, c:20, t:`Any · Passive`, d:`Optical Flare reaches 16″.` },
       ] },
 
     { id:'goliath', race:'terran', name:`Goliath`, slot:'elite', role:`Damage Dealer`, base:`80mm`,
@@ -393,11 +393,11 @@ const GAME = {
       ],
       abilities:[
         [`Target Lock`, `Movement · Active · 1 CP`, `Mark an enemy within 12″: friendly Goliath Autocannons attacking it get Surge Light & Armoured and S Dice D3+1.`],
-        [`Indomitable`, `Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (4) 3+.`],
+        [`Indomitable`, `Assault · Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (4) 3+.`],
       ],
       upgrades:[
-        { n:`Ares-Class Targeting System`, c:20, t:`Passive`, d:`Autocannon and Underbelly MG gain PRECISION (1).`, fx:[{ w:[`Autocannon`, `Underbelly Machine Gun`], kw:`PRECISION (1)` }] },
+        { n:`Ares-Class Targeting System`, c:20, t:`Any · Passive`, d:`Autocannon and Underbelly MG gain PRECISION (1).`, fx:[{ w:[`Autocannon`, `Underbelly Machine Gun`], kw:`PRECISION (1)` }] },
         { n:`Scatter Missiles`, c:30, rep:`Hellfire Missiles`, w:`Scatter Missiles | 18″ | Ground | 6 | 5+ | Light | D3 | 1 | INDIRECT FIRE, LOCKED IN (6), LONG RANGE (24″), SIDEARM` },
         { n:`Haywire Missiles`, c:40, rep:`Hellfire Missiles`, w:`Haywire Missiles | 12″ | Ground | 3 | 3+ | Armoured | D3 | 1 | PIERCE Armoured (3), SIDEARM` },
       ] },
@@ -412,12 +412,12 @@ const GAME = {
         `Rolling Over | E | Ground | 2 | 2+ | – | – | 1 | –`,
       ],
       abilities:[
-        [`Large`, `Passive`, `Needs 3″ gaps. Driving through or ending on Size 0–1 impassable terrain removes that piece.`],
-        [`Heavy Plating`, `Passive`, `TOUGH (1) on Armour rolls while not in SIEGE MODE.`],
-        [`Indomitable`, `Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
-        [`Aftershock Rounds`, `Passive`, `In SIEGE MODE, Damage equals the target's Size (min 1).`],
-        [`Point Blank`, `Passive`, `In SIEGE MODE it can't target units it is Engaged with.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (4) 3+.`],
+        [`Large`, `Any · Passive`, `Needs 3″ gaps. Driving through or ending on Size 0–1 impassable terrain removes that piece.`],
+        [`Heavy Plating`, `Any · Passive`, `TOUGH (1) on Armour rolls while not in SIEGE MODE.`],
+        [`Indomitable`, `Assault · Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
+        [`Aftershock Rounds`, `Assault · Passive`, `In SIEGE MODE, Damage equals the target's Size (min 1).`],
+        [`Point Blank`, `Assault · Passive`, `In SIEGE MODE it can't target units it is Engaged with.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (4) 3+.`],
       ],
       upgrades:[
         { n:`Mode Transformation`, c:20, t:`Movement · Active · 1 CP`, d:`Enter or leave SIEGE MODE (Size 3 while sieged). Without this the tank can't siege at all.` },
@@ -432,15 +432,15 @@ const GAME = {
       sizes:[[1,170,1]], summons:['autoturret'],
       weapons:[`Railguns | 12″ | Ground | 4 | 3+ | – | – | 1 | –`],
       abilities:[
-        [`Detection`, `Passive`, `Enemies within 6″ lose HIDDEN.`],
+        [`Detection`, `Any · Passive`, `Enemies within 6″ lose HIDDEN.`],
         [`Deploy Auto-Turret`, `Movement · Active · 1 CP`, `Set an Auto-Turret within 6″, outside enemy Engagement Range.`],
         [`Anti-Armour Missile`, `Movement · Active · 1 CP`, `An enemy within 12″ gets DEBUFF Armour (1).`],
       ],
       upgrades:[
-        { n:`Corvid Reactor`, c:30, t:`Passive`, d:`Its first Special Ability costs 1 CP less if it targets the closest enemy unit.` },
-        { n:`Internal Tech Module`, c:20, t:`Passive`, d:`May Deploy from any non-Entry table edge, not within 8″ of enemies.` },
+        { n:`Corvid Reactor`, c:30, t:`Any · Passive`, d:`Its first Special Ability costs 1 CP less if it targets the closest enemy unit.` },
+        { n:`Internal Tech Module`, c:20, t:`Movement · Passive`, d:`May Deploy from any non-Entry table edge, not within 8″ of enemies.` },
         { n:`Seeker Missile`, c:20, t:`Movement · Active · 1 CP`, d:`Enemy within 12″: at end of the Assault Phase, if Stationary or within 8″ of the Raven, it takes HITS 4 (2) (may Evade if Engaged).` },
-        { n:`Explosive Shrapnel Shells`, c:10, t:`Passive`, d:`Auto-Turret Gauss Cannon gets Surge Light and S Dice D3+1.` },
+        { n:`Explosive Shrapnel Shells`, c:10, t:`Assault · Passive`, d:`Auto-Turret Gauss Cannon gets Surge Light and S Dice D3+1.` },
       ] },
 
     { id:'raynor', race:'terran', name:`Jim Raynor`, slot:'hero', role:`Tactician`, base:`40mm`, unique:1,
@@ -453,8 +453,8 @@ const GAME = {
         `Bayonet | E | Ground | 2 | 4+ | Light | D3 | 1 | –`,
       ],
       abilities:[
-        [`Commander`, `Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
-        [`Freedom Fighters`, `Passive`, `Friendly units within 8″ count at least 1 Supply for markers and objectives.`],
+        [`Commander`, `Any · Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
+        [`Freedom Fighters`, `Any · Passive`, `Friendly units within 8″ count at least 1 Supply for markers and objectives.`],
         [`Orders`, `Movement · Active · X CP · REPEATABLE`, `Another friendly Biological unit within 8″: 1 CP — first weapon gains CRITICAL HIT (2); 1 CP — ignore the Disengage penalty this Round; 2 CP — remove its Activation Marker.`],
       ],
       upgrades:[
@@ -470,12 +470,12 @@ const GAME = {
         `Combat Knife | E | Ground | 3 | 5+ | – | – | 1 | –`,
       ],
       abilities:[
-        [`Tactical Stealth Suit`, `Passive`, `Becomes HIDDEN after fully resolving an action.`],
-        [`Ghost Visor`, `Passive`, `Enemies within 6″ lose HIDDEN.`],
+        [`Tactical Stealth Suit`, `Any · Passive`, `Becomes HIDDEN after fully resolving an action.`],
+        [`Ghost Visor`, `Any · Passive`, `Enemies within 6″ lose HIDDEN.`],
         [`Super Stimpack`, `Movement · Active · 1 CP`, `BUFF Speed (2); all weapons gain PRECISION (2).`],
         [`Holo Decoy`, `Movement · Active · 1 CP`, `SUMMON a Holo Decoy; it may Move immediately.`],
-        [`Operational Efficiency`, `Passive`, `After a C-20A attack that destroys the target or lowers its Supply, ready one Exhausted non-Unique Tactical Card.`],
-        [`Head Shot`, `Reaction · 1 CP · Once per Game`, `Unengaged and Stationary: one C-20A attack is Damage 3 with CONCENTRATED FIRE (1).`],
+        [`Operational Efficiency`, `Assault · Passive`, `After a C-20A attack that destroys the target or lowers its Supply, ready one Exhausted non-Unique Tactical Card.`],
+        [`Head Shot`, `Assault · Reaction · 1 CP · Once per Game`, `Unengaged and Stationary: one C-20A attack is Damage 3 with CONCENTRATED FIRE (1).`],
       ] },
 
     { id:'nova-assault', race:'terran', name:`Nova (Assault Mode)`, slot:'hero', role:`Damage Dealer`, base:`40mm`, unique:1, excl:'nova',
@@ -487,11 +487,11 @@ const GAME = {
         `Monomolecular Blade | E | Ground | 8 | 3+ | Light, Armoured | D6 | 1 | –`,
       ],
       abilities:[
-        [`Ghost Visor`, `Passive`, `Enemies within 6″ lose HIDDEN.`],
+        [`Ghost Visor`, `Any · Passive`, `Enemies within 6″ lose HIDDEN.`],
         [`Super Stimpack`, `Movement · Active · 1 CP`, `BUFF Speed (2); all weapons gain PRECISION (2).`],
         [`Holo Decoy`, `Movement · Active · 1 CP`, `SUMMON a Holo Decoy; it may Move immediately.`],
         [`Phase Reactor Suit`, `Assault · Active · 1 CP`, `If unengaged, PLACE (6).`],
-        [`Devastating Charge`, `Passive`, `IMPACT (4) 4+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (4) 4+.`],
       ] },
 
     // Terran — summoned (free, no slot)
@@ -499,34 +499,34 @@ const GAME = {
       tags:['TERRAN', `RAYNOR'S RAIDERS`], ctags:`Armoured, Flying, Mechanical`,
       stats:{ spd:`–`, arm:`6+`, eva:`6+`, hp:3, size:`–` }, supply:`0`, sizes:[[1,0,0]], weapons:[],
       abilities:[
-        [`Point Defense Laser`, `Passive`, `When another friendly unit within 4″ is targeted by a ranged attack without INSTANT, remove up to 2 attack dice, then remove the drone.`],
-        [`Structure`, `Passive`, `Can't activate or act, Supply 0, never holds markers.`],
-        [`Gliding`, `Passive`, `DISPLACEMENT.`],
+        [`Point Defense Laser`, `Any · Passive`, `When another friendly unit within 4″ is targeted by a ranged attack without INSTANT, remove up to 2 attack dice, then remove the drone.`],
+        [`Structure`, `Any · Passive`, `Can't activate or act, Supply 0, never holds markers.`],
+        [`Gliding`, `Any · Passive`, `DISPLACEMENT.`],
       ] },
     { id:'decoy', race:'terran', summoned:1, name:`Holo Decoy`, by:`Nova (either mode)`, base:`32mm`,
       tags:['TERRAN'], ctags:`Psionic, Ground`,
       stats:{ spd:`7″`, arm:`6+`, eva:`6+`, hp:1, size:2 }, supply:`0`, sizes:[[1,0,0]], weapons:[],
       abilities:[
-        [`Timed Life`, `Passive`, `Removed at End of Round.`],
-        [`Decoy`, `Passive`, `Never Engaged, can't Charge, can't be targeted by abilities, never contests markers.`],
-        [`Surprise!`, `Passive`, `At End of Round you may set Nova in Coherency with it.`],
-        [`Lethal Hologram`, `Passive`, `Friendly weapons targeting an enemy within 4″ of it gain PRECISION (1).`],
+        [`Timed Life`, `Any · Passive`, `Removed at End of Round.`],
+        [`Decoy`, `Any · Passive`, `Never Engaged, can't Charge, can't be targeted by abilities, never contests markers.`],
+        [`Surprise!`, `Any · Passive`, `At End of Round you may set Nova in Coherency with it.`],
+        [`Lethal Hologram`, `Any · Passive`, `Friendly weapons targeting an enemy within 4″ of it gain PRECISION (1).`],
       ] },
     { id:'sabotage', race:'terran', summoned:1, name:`Sabotage Drone`, by:`Nova Covert Ops faction card (Griffin Support)`, base:`40mm`,
       tags:['TERRAN', 'NOVA COVERT OPS'], ctags:`Armoured, Mechanical, Ground`,
       stats:{ spd:`–`, arm:`6+`, eva:`6+`, hp:3, size:1 }, supply:`0`, sizes:[[1,0,0]], weapons:[],
       abilities:[
-        [`Structure`, `Passive`, `Can't activate or act, Supply 0, never holds markers.`],
-        [`Have a Nice Day`, `Passive`, `End of the Assault Phase: every unit within 3″ takes HITS 5 (1); Structures take a second HITS 5 (1).`],
+        [`Structure`, `Any · Passive`, `Can't activate or act, Supply 0, never holds markers.`],
+        [`Have a Nice Day`, `Assault · Passive`, `End of the Assault Phase: every unit within 3″ takes HITS 5 (1); Structures take a second HITS 5 (1).`],
       ] },
     { id:'autoturret', race:'terran', summoned:1, name:`Auto-Turret`, by:`Raven (Deploy Auto-Turret)`, base:`40mm`,
       tags:['TERRAN'], ctags:`Armoured, Mechanical, Ground`,
       stats:{ spd:`–`, arm:`5+`, eva:`–`, hp:3, size:2 }, supply:`0`, sizes:[[1,0,0]],
       weapons:[`Gauss Cannon | 8″ | All | 6 | 3+ | – | – | 1 | PINPOINT`],
       abilities:[
-        [`Timed Life`, `Passive`, `Removed at End of Round.`],
-        [`Structure`, `Passive`, `Can't activate, Supply 0, never holds markers.`],
-        [`Overwatch`, `Reaction · 0 CP`, `When an enemy ends its activation within 8″, shoot it.`],
+        [`Timed Life`, `Any · Passive`, `Removed at End of Round.`],
+        [`Structure`, `Any · Passive`, `Can't activate, Supply 0, never holds markers.`],
+        [`Overwatch`, `Assault · Reaction · 0 CP`, `When an enemy ends its activation within 8″, shoot it.`],
       ] },
 
     // ═════ ZERG ═════
@@ -536,14 +536,14 @@ const GAME = {
       sizes:[[12,150,1],[18,210,2]],
       weapons:[`Claws | E | Ground | 2 | 4+ | Light | D3 | 1 | –`],
       abilities:[
-        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model (instead of 3″).`],
+        [`Squadron`, `Any · Passive`, `Models may be set within 4″ of the Leading Model (instead of 3″).`],
         [`Metabolic Boost`, `Assault · Active · 1 BM`, `Roll 2D6 for the Charge and keep the higher.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (1) 5+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (1) 5+.`],
       ],
       upgrades:[
-        { n:`Burrow Ambush`, c:[20,30], t:`Passive`, d:BURROW_AMBUSH },
+        { n:`Burrow Ambush`, c:[20,30], t:`Movement · Passive`, d:BURROW_AMBUSH },
         { n:`Shredding Claws`, c:10, rep:`Claws`, w:`Shredding Claws | E | Ground | 2 | 4+ | Light, Armoured | D3 | 1 | –` },
-        { n:`Adrenal Glands`, c:20, t:`Passive`, d:`Claws / Shredding Claws gain PRECISION (2).`, fx:[{ w:[`Claws`, `Shredding Claws`], kw:`PRECISION (2)` }] },
+        { n:`Adrenal Glands`, c:20, t:`Combat · Passive`, d:`Claws / Shredding Claws gain PRECISION (2).`, fx:[{ w:[`Claws`, `Shredding Claws`], kw:`PRECISION (2)` }] },
       ] },
 
     { id:'raptor', race:'zerg', name:`Raptor`, slot:'elite', role:`Damage Dealer`, base:`32mm`,
@@ -552,16 +552,16 @@ const GAME = {
       sizes:[[12,210,1],[18,260,2]],
       weapons:[`Claws | E | Ground | 2 | 4+ | Light | D3 | 1 | –`],
       abilities:[
-        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
-        [`Raptor Strain`, `Passive`, `Moves through Impassable Terrain of Size 4 or less and changes elevation without Access Points.`],
+        [`Squadron`, `Any · Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Raptor Strain`, `Any · Passive`, `Moves through Impassable Terrain of Size 4 or less and changes elevation without Access Points.`],
         [`Adrenal Overload`, `Assault · Active · 1 BM`, `+1 to IMPACT hit rolls.`],
         [`Metabolic Boost`, `Assault · Active · 1 BM`, `Roll 2D6 for the Charge and keep the higher.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (1) 5+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (1) 5+.`],
       ],
       upgrades:[
-        { n:`Burrow Ambush`, c:[20,30], t:`Passive`, d:BURROW_AMBUSH },
+        { n:`Burrow Ambush`, c:[20,30], t:`Movement · Passive`, d:BURROW_AMBUSH },
         { n:`Shredding Claws`, c:10, rep:`Claws`, w:`Shredding Claws | E | Ground | 2 | 4+ | Light, Armoured | D3 | 1 | –` },
-        { n:`Adrenal Glands`, c:20, t:`Passive`, d:`Claws / Shredding Claws gain PRECISION (2).`, fx:[{ w:[`Claws`, `Shredding Claws`], kw:`PRECISION (2)` }] },
+        { n:`Adrenal Glands`, c:20, t:`Combat · Passive`, d:`Claws / Shredding Claws gain PRECISION (2).`, fx:[{ w:[`Claws`, `Shredding Claws`], kw:`PRECISION (2)` }] },
       ] },
 
     { id:'ksraptor', race:'zerg', name:`Kerrigan Swarm Raptor`, model:`Swarm Raptor`, slot:'elite', role:`Damage Dealer`, base:`32mm`, unique:1,
@@ -570,11 +570,11 @@ const GAME = {
       sizes:[[6,230,1]],
       weapons:[`Claws | E | Ground | 2 | 3+ | Light, Armoured | D6 | 1 | INSTANT`],
       abilities:[
-        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
-        [`Raptor Strain`, `Passive`, `Moves through Impassable Terrain of Size 4 or less and changes elevation without Access Points.`],
+        [`Squadron`, `Any · Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Raptor Strain`, `Any · Passive`, `Moves through Impassable Terrain of Size 4 or less and changes elevation without Access Points.`],
         [`Leap`, `Assault · Active · 1 BM`, `+2″ Charge distance.`],
         [`Adrenal Overload`, `Assault · Active · 1 BM`, `+1 to IMPACT hit rolls.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (2) 5+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (2) 5+.`],
       ] },
 
     { id:'swarmling', race:'zerg', name:`Swarmling`, slot:'core', role:`Damage Dealer`, base:`32mm`,
@@ -583,12 +583,12 @@ const GAME = {
       sizes:[[18,210,1]],
       weapons:[`Claws | E | Ground | 2 | 5+ | – | – | 1 | –`],
       abilities:[
-        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Squadron`, `Any · Passive`, `Models may be set within 4″ of the Leading Model.`],
         [`Zergling Reconstitution`, `Movement · Active · 1 BM`, `RESPAWN (2), or RESPAWN (3) if ON CREEP.`],
         [`Metabolic Boost`, `Assault · Active · 1 BM`, `Roll 2D6 for the Charge and keep the higher.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (1) 5+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (1) 5+.`],
       ],
-      upgrades:[{ n:`Burrow Ambush`, c:20, t:`Passive`, d:BURROW_AMBUSH }] },
+      upgrades:[{ n:`Burrow Ambush`, c:20, t:`Movement · Passive`, d:BURROW_AMBUSH }] },
 
     { id:'vileling', race:'zerg', name:`Vileling`, slot:'core', role:`Damage Dealer`, base:`32mm`,
       tags:['ZERG', `ZAGARA'S SWARM`], ctags:`Biological, Light, Ground`,
@@ -596,12 +596,12 @@ const GAME = {
       sizes:[[18,180,2]],
       weapons:[`Claws | E | Ground | 2 | 5+ | – | – | 1 | –`],
       abilities:[
-        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Squadron`, `Any · Passive`, `Models may be set within 4″ of the Leading Model.`],
         [`Zergling Reconstitution`, `Movement · Active · 1 BM`, `RESPAWN (2), or RESPAWN (3) if ON CREEP.`],
-        [`Burrow Ambush`, `Passive`, BURROW_AMBUSH],
+        [`Burrow Ambush`, `Movement · Passive`, BURROW_AMBUSH],
         [`Metabolic Boost`, `Assault · Active · 1 BM`, `Roll 2D6 for the Charge and keep the higher.`],
-        [`Debilitating Claws`, `Passive`, `An enemy unit damaged by this unit gets DEBUFF Hit (1) on each of its weapons.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (1) 5+.`],
+        [`Debilitating Claws`, `Combat · Passive`, `An enemy unit damaged by this unit gets DEBUFF Hit (1) on each of its weapons.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (1) 5+.`],
       ] },
 
     { id:'roach', race:'zerg', name:`Roach`, plural:`Roaches`, slot:'core', role:`Tank`, base:`50mm`,
@@ -612,7 +612,7 @@ const GAME = {
         `Acid Saliva | 8″ | Ground | 3 | 3+ | – | – | 1 | –`,
         `Claws | E | Ground | 2 | 4+ | – | – | 1 | –`,
       ],
-      abilities:[...ROACH_ABILITIES, [`Devastating Charge`, `Passive`, `IMPACT (2) 4+.`]],
+      abilities:[...ROACH_ABILITIES, [`Devastating Charge`, `Assault · Passive`, `IMPACT (2) 4+.`]],
       upgrades:ROACH_UPGRADES },
 
     { id:'vile', race:'zerg', name:`Vile`, slot:'core', role:`Tank`, base:`50mm`,
@@ -624,8 +624,8 @@ const GAME = {
         `Vile Claws | E | Ground | 2 | 4+ | – | – | 1 | –`,
       ],
       abilities:[...ROACH_ABILITIES,
-        [`Debilitating Saliva`, `Reaction · 1 BM`, `When an enemy within 8″ declares a ranged attack, its ranged weapons get DEBUFF Hit (1).`],
-        [`Devastating Charge`, `Passive`, `IMPACT (1) 4+.`]],
+        [`Debilitating Saliva`, `Any · Reaction · 1 BM`, `When an enemy within 8″ declares a ranged attack, its ranged weapons get DEBUFF Hit (1).`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (1) 4+.`]],
       upgrades:ROACH_UPGRADES },
 
     { id:'corpser', race:'zerg', name:`Corpser`, slot:'core', role:`Tank`, base:`50mm`,
@@ -638,7 +638,7 @@ const GAME = {
       ],
       abilities:[...ROACH_ABILITIES,
         [`Roachling Infestation`, `Movement · Active · 2 BM · Once per Game`, `SUMMON a Roachling unit.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (3) 4+.`]],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (3) 4+.`]],
       upgrades:ROACH_UPGRADES },
 
     { id:'ravager', race:'zerg', name:`Ravager`, slot:'core', role:`Tactician`, base:`80mm`,
@@ -650,15 +650,15 @@ const GAME = {
         `Claws | E | Ground | 2 | 4+ | – | – | 1 | –`,
       ],
       abilities:[
-        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Squadron`, `Any · Passive`, `Models may be set within 4″ of the Leading Model.`],
         [`Deep Tunnel`, `Movement · Active · 1 BM`, `Set a burrow token within 12″ of a model; at End of Round you may re-set the unit around it. Token has DISPLACEMENT.`],
         [`Corrosive Bile`, `Movement · Active · 1 BM`, `Each model sets a bile token within 14″. End of the Assault Phase: each unit within 1″ of a token takes HITS 5 (1) per token.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (2) 4+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (2) 4+.`],
       ],
       upgrades:[
-        { n:`Bloated Bile Ducts`, c:[20,40], t:`Passive`, d:`Corrosive Bile reaches 2″ instead of 1″.` },
-        { n:`Burrow Ambush`, c:[20,40], t:`Passive`, d:BURROW_AMBUSH },
-        { n:`Potent Bile`, c:[20,40], t:`Passive`, d:`Enemies hit by Corrosive Bile get DEBUFF Armour (1) before rolling Armour.` },
+        { n:`Bloated Bile Ducts`, c:[20,40], t:`Any · Passive`, d:`Corrosive Bile reaches 2″ instead of 1″.` },
+        { n:`Burrow Ambush`, c:[20,40], t:`Movement · Passive`, d:BURROW_AMBUSH },
+        { n:`Potent Bile`, c:[20,40], t:`Assault · Passive`, d:`Enemies hit by Corrosive Bile get DEBUFF Armour (1) before rolling Armour.` },
       ] },
 
     { id:'hydralisk', race:'zerg', name:`Hydralisk`, slot:'elite', role:`Damage Dealer`, base:`40×100mm oval`,
@@ -670,14 +670,14 @@ const GAME = {
         `Scythe | E | Ground | 2 | 4+ | – | – | 1 | –`,
       ],
       abilities:[
-        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
-        [`Lunge`, `Reaction · 1 BM`, `After another friendly unit within 10″ is shot, this unit (if unengaged) may Move directly towards the shooter.`],
+        [`Squadron`, `Any · Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Lunge`, `Combat · Reaction · 1 BM`, `After another friendly unit within 10″ is shot, this unit (if unengaged) may Move directly towards the shooter.`],
       ],
       upgrades:[
-        { n:`Ancillary Carapace`, c:[20,30], t:`Passive`, d:`TOUGH (1) on the first Armour roll of each activation.` },
-        { n:`Lurking`, c:10, t:`Passive`, d:`If Stationary, may Evade the first ranged attack on it each Round (+1 ON CREEP).` },
-        { n:`Burrow Ambush`, c:[20,40], t:`Passive`, d:BURROW_AMBUSH },
-        { n:`Grooved Spines`, c:[20,30], t:`Passive`, d:`Needle Spines gain LONG RANGE (16″).`, fx:[{ w:`Needle Spines`, kw:`LONG RANGE (16″)` }] },
+        { n:`Ancillary Carapace`, c:[20,30], t:`Any · Passive`, d:`TOUGH (1) on the first Armour roll of each activation.` },
+        { n:`Lurking`, c:10, t:`Any · Passive`, d:`If Stationary, may Evade the first ranged attack on it each Round (+1 ON CREEP).` },
+        { n:`Burrow Ambush`, c:[20,40], t:`Movement · Passive`, d:BURROW_AMBUSH },
+        { n:`Grooved Spines`, c:[20,30], t:`Assault · Passive`, d:`Needle Spines gain LONG RANGE (16″).`, fx:[{ w:`Needle Spines`, kw:`LONG RANGE (16″)` }] },
       ] },
 
     { id:'queen', race:'zerg', name:`Queen`, slot:'support', role:`Lifesaver`, base:`80mm`,
@@ -691,13 +691,13 @@ const GAME = {
       ],
       abilities:[
         [`Spawn Creep Tumor`, `Any · Active · 1 BM`, `Set a Creep Tumor touching its base.`],
-        [`Transfusion`, `Reaction · 1 BM`, `Another friendly Biological unit within 4″ takes Damage: reduce its Total Damage by 2.`],
-        [`Restoration`, `Reaction · 1 BM`, `A friendly unit within 4″ receives a DEBUFF: clear all its DEBUFFS.`],
-        [`Psionic Link`, `Passive · once per Round`, `With 7+ friendly models within 6″, a Special Ability costs 1 BM less.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (4) 3+.`],
+        [`Transfusion`, `Any · Reaction · 1 BM`, `Another friendly Biological unit within 4″ takes Damage: reduce its Total Damage by 2.`],
+        [`Restoration`, `Any · Reaction · 1 BM`, `A friendly unit within 4″ receives a DEBUFF: clear all its DEBUFFS.`],
+        [`Psionic Link`, `Any · Passive · once per Round`, `With 7+ friendly models within 6″, a Special Ability costs 1 BM less.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (4) 3+.`],
       ],
       upgrades:[
-        { n:`Creep Speed`, c:10, t:`Passive`, d:`+2 Speed while ON CREEP.` },
+        { n:`Creep Speed`, c:10, t:`Any · Passive`, d:`+2 Speed while ON CREEP.` },
         { n:`Domineering Presence`, c:10, t:`Movement · Active · 1 BM`, d:`Another friendly unit within 6″ (no LoS) counts +1 Supply for markers and objectives.` },
       ] },
 
@@ -707,13 +707,13 @@ const GAME = {
       sizes:[[1,130,1]],
       weapons:[`Claws | E | Ground | 4 | 3+ | – | – | 1 | –`],
       abilities:[
-        [`Consume`, `Passive`, `When paying for a BM ability, may remove a model from a friendly unit within 4″ to pay 1 BM.`],
+        [`Consume`, `Any · Passive`, `When paying for a BM ability, may remove a model from a friendly unit within 4″ to pay 1 BM.`],
         [`Gestate Dark Swarm`, `Movement · Active · 0 BM`, `Set a Dark Swarm token in empty space within 4″ and LoS (DISPLACEMENT).`],
         [`Dark Swarm`, `Assault · Reaction · 1 BM · REPEATABLE`, `A friendly unit within 4″ of the token is attacked while the Defiler is also within 4″ of it: the target may Evade (+1 if Size 1).`],
-        [`Devastating Charge`, `Passive`, `IMPACT (4) 4+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (4) 4+.`],
       ],
       upgrades:[
-        { n:`Burrow Ambush`, c:20, t:`Passive`, d:BURROW_AMBUSH },
+        { n:`Burrow Ambush`, c:20, t:`Movement · Passive`, d:BURROW_AMBUSH },
         { n:`Plague`, c:20, t:`Assault · Active · 1–3 BM`, d:`Blast Template within 10″ and LoS: each covered unit rolls 2 dice + 1 per covered model, loses HIDDEN, and takes NON-LETHAL DAMAGE (1) per 5+ / 4+ / 3+ (1 / 2 / 3 BM).` },
         { n:`Cancerous Bite`, c:20, w:`Cancerous Bite | E | Ground | 2 | 3+ | – | – | 2 | CRITICAL HIT (1), SIDEARM` },
       ] },
@@ -724,11 +724,11 @@ const GAME = {
       sizes:[[1,150,1]],
       weapons:[`Bile Bomb | 12″ | Ground | 6 | 3+ | Light, Armoured | D3 | 1 | PIERCE Armoured (2), PINPOINT`],
       abilities:[
-        [`Biological Structure`, `Passive`, `Can't BURROW or return to Reserves; immune to IMPACT. Never moves.`],
-        [`Burrow Ambush`, `Passive`, `Built in — this is how it arrives. ` + BURROW_AMBUSH],
-        [`Detection`, `Passive`, `Enemies within 6″ lose HIDDEN.`],
-        [`Source of Creep`, `Passive`, `Ground Zerg units within 6″ are ON CREEP.`],
-        [`Indomitable`, `Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
+        [`Biological Structure`, `Any · Passive`, `Can't BURROW or return to Reserves; immune to IMPACT. Never moves.`],
+        [`Burrow Ambush`, `Movement · Passive`, `Built in — this is how it arrives. ` + BURROW_AMBUSH],
+        [`Detection`, `Any · Passive`, `Enemies within 6″ lose HIDDEN.`],
+        [`Source of Creep`, `Any · Passive`, `Ground Zerg units within 6″ are ON CREEP.`],
+        [`Indomitable`, `Assault · Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
         [`Bombard`, `Movement · Active · 1 BM`, `Set a token within 24″: this Round the Bile Bomb may hit an enemy within 3″ of it ignoring Range, LoS and HIDDEN; the token then becomes a Creep Tumor.`],
       ] },
 
@@ -741,11 +741,11 @@ const GAME = {
         `Blades | E | Ground | 6 | 4+ | – | – | 2 | CRITICAL HIT (2)`,
       ],
       abilities:[
-        [`Commander`, `Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
+        [`Commander`, `Any · Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
         [`Crushing Grip`, `Movement · Active · 1 BM`, `An enemy unit within 12″ counts as Activated this Phase.`],
         [`Mutating Carapace`, `Movement · Active · 1 BM`, `Pick an enemy within 18″: Kerrigan may Evade its attacks with +2.`],
         [`Leaping Strike`, `Assault · Active · 1 BM`, `If unengaged, PLACE (6) — in the Assault Phase it may end Engaged.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (4) 4+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (4) 4+.`],
       ] },
 
     { id:'zagara', race:'zerg', name:`Zagara`, slot:'hero', role:`Tactician`, base:`100mm`, unique:1,
@@ -758,12 +758,12 @@ const GAME = {
         `Talons | E | Ground | 4 | 3+ | – | – | 1 | –`,
       ],
       abilities:[
-        [`Commander`, `Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
-        [`Transfusion`, `Reaction · 1 BM`, `Another friendly Biological unit within 4″ takes Damage: reduce its Total Damage by 2.`],
-        [`Psionic Link`, `Passive · once per Round`, `With 7+ friendly models within 6″, a Special Ability costs 1 BM less.`],
-        [`Indomitable`, `Passive`, `While Engaged she can shoot and be shot by unengaged enemies; the defender may Evade.`],
-        [`Infested Drop`, `Passive`, `Her base is an Entry Edge: each Round, friendly units totalling 1 Supply may Deploy through it.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (6) 3+.`],
+        [`Commander`, `Any · Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
+        [`Transfusion`, `Any · Reaction · 1 BM`, `Another friendly Biological unit within 4″ takes Damage: reduce its Total Damage by 2.`],
+        [`Psionic Link`, `Any · Passive · once per Round`, `With 7+ friendly models within 6″, a Special Ability costs 1 BM less.`],
+        [`Indomitable`, `Assault · Passive`, `While Engaged she can shoot and be shot by unengaged enemies; the defender may Evade.`],
+        [`Infested Drop`, `Movement · Passive`, `Her base is an Entry Edge: each Round, friendly units totalling 1 Supply may Deploy through it.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (6) 3+.`],
         [`Broodmother`, `Movement · Active · 1 BM`, `Pick one for all friendly units (not last Round's pick): Size 1 → +1 to IMPACT rolls · Size 2 → weapons gain CRITICAL HIT (1) · Size 3+ → TOUGH (1).`,
           `Printed as an upgrade, but the Oct 2026 cost table lists no price — treated as built-in.`],
       ] },
@@ -773,16 +773,16 @@ const GAME = {
       tags:['ZERG', `KERRIGAN'S SWARM`], ctags:`Armoured, Biological, Ground`,
       stats:{ spd:`–`, arm:`5+`, eva:`–`, hp:10, size:3 }, supply:`0`, sizes:[[1,0,0]], weapons:[],
       abilities:[
-        [`Detection`, `Passive`, `Enemies within 6″ lose HIDDEN.`],
-        [`Source of Creep`, `Passive`, `Ground Zerg units within 6″ are ON CREEP.`],
-        [`Structure`, `Passive`, `Can't activate or act, Supply 0, never holds markers.`],
-        [`Omega Network`, `Passive`, `Its base is an Entry Edge for friendly units totalling up to 2 Supply per Round; a friendly unit ending a move touching it may return to Reserves.`],
+        [`Detection`, `Any · Passive`, `Enemies within 6″ lose HIDDEN.`],
+        [`Source of Creep`, `Any · Passive`, `Ground Zerg units within 6″ are ON CREEP.`],
+        [`Structure`, `Any · Passive`, `Can't activate or act, Supply 0, never holds markers.`],
+        [`Omega Network`, `Any · Passive`, `Its base is an Entry Edge for friendly units totalling up to 2 Supply per Round; a friendly unit ending a move touching it may return to Reserves.`],
       ] },
     { id:'roachling', race:'zerg', summoned:1, name:`Roachling`, by:`Corpser (Roachling Infestation)`, base:`32mm`,
       tags:['ZERG'], ctags:`Biological, Light, Ground`,
       stats:{ spd:`4″/7″`, arm:`6+`, eva:`6+`, hp:1, size:1 }, supply:`1–3 → 0`, sizes:[[3,0,0]],
       weapons:[`Claws | E | Ground | 2 | 4+ | – | – | 1 | –`],
-      abilities:[[`Underdeveloped Claws`, `Passive`, `Can't BURROW.`]] },
+      abilities:[[`Underdeveloped Claws`, `Any · Passive`, `Can't BURROW.`]] },
 
     // ═════ PROTOSS ═════
     { id:'zealot', race:'protoss', name:`Zealot`, slot:'core', role:`Damage Dealer`, base:`40mm`,
@@ -792,10 +792,10 @@ const GAME = {
       weapons:[`Psi Blades | E | Ground | 4 | 3+ | Light | D3 | 1 | –`],
       abilities:[
         [`Charge`, `Assault · Active · 1 PE`, `Roll 2D6 for the Charge and keep the higher.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (3) 4+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (3) 4+.`],
       ],
       upgrades:[
-        { n:`My Life for Aiur`, c:10, t:`Passive`, d:`Each eligible model rolls one extra IMPACT die.` },
+        { n:`My Life for Aiur`, c:10, t:`Any · Passive`, d:`Each eligible model rolls one extra IMPACT die.` },
         { n:`Leg Enhancements`, c:20, t:`Movement · Active · 1 PE`, d:`A free 2″ Move (doesn't count towards its action).` },
         { n:`Zealous Round`, c:10, t:`Assault · Reaction · 0 PE`, d:`If not yet activated when it receives Damage, count it as activated this Phase to reduce Total Damage by 2.` },
         { n:`We Stand as One`, c:20, t:`Combat · Passive`, d:`Psi Blades gain PRECISION (2) if the target is also Engaged with another friendly unit.` },
@@ -807,12 +807,12 @@ const GAME = {
       sizes:[[3,260,2]],
       weapons:[`Psi Blades | E | Ground | 4 | 3+ | Light | D3 | 1 | –`],
       abilities:[
-        [`Shield Overcharge`, `Passive`, `TOUGH (2) on the first Armour roll each Round.`],
+        [`Shield Overcharge`, `Any · Passive`, `TOUGH (2) on the first Armour roll each Round.`],
         [`Leg Enhancements`, `Movement · Active · 1 PE`, `A free 2″ Move.`],
         [`Charge`, `Assault · Active · 1 PE`, `Roll 2D6 for the Charge and keep the higher.`],
-        [`Titan Killers`, `Passive`, `Close combat attacks against Size 3+ targets have Damage 2.`],
-        [`Precognition`, `Passive`, `May Evade every attack.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (3) 4+.`],
+        [`Titan Killers`, `Combat · Passive`, `Close combat attacks against Size 3+ targets have Damage 2.`],
+        [`Precognition`, `Combat · Passive`, `May Evade every attack.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (3) 4+.`],
       ] },
 
     { id:'adept', race:'protoss', name:`Adept`, slot:'core', role:`Damage Dealer`, base:`40mm`,
@@ -824,12 +824,12 @@ const GAME = {
         `Strike | E | Ground | 1 | 4+ | – | – | 1 | –`,
       ],
       abilities:[
-        [`Psionic Presence`, `Passive`, `Friendly weapons targeting an enemy within 4″ of its Shade token gain PRECISION (1).`],
+        [`Psionic Presence`, `Any · Passive`, `Friendly weapons targeting an enemy within 4″ of its Shade token gain PRECISION (1).`],
         [`Psionic Transfer`, `Movement · Active · 1 PE`, `Set a Shade token within 12″; at End of Round you may re-set the unit around it. Not a PLACE, so it can end Engaged.`],
       ],
       upgrades:[
         { n:`Resonating Glaives`, c:20, t:`Assault · Active · 1 PE`, d:`Glaive Cannon gets BUFF RoA (1).` },
-        { n:`Guidance`, c:10, t:`Passive`, d:`Glaive Cannon gains ANTI-EVADE (2).`, fx:[{ w:`Glaive Cannon`, kw:`ANTI-EVADE (2)` }] },
+        { n:`Guidance`, c:10, t:`Assault · Passive`, d:`Glaive Cannon gains ANTI-EVADE (2).`, fx:[{ w:`Glaive Cannon`, kw:`ANTI-EVADE (2)` }] },
         { n:`Glaive Strike`, c:20, rep:`Strike`, w:`Glaive Strike | E | Ground | 1 | 4+ | Light | D3 | 1 | PIERCE Light (2)` },
       ] },
 
@@ -843,7 +843,7 @@ const GAME = {
       ],
       abilities:[
         [`Path of Shadows`, `Any · Active · 1 PE`, `HIDDEN until it performs another action.`],
-        [`Nerazim Farsight`, `Passive`, `Enemies within 6″ of its Shade token lose HIDDEN.`],
+        [`Nerazim Farsight`, `Any · Passive`, `Enemies within 6″ of its Shade token lose HIDDEN.`],
         [`Psionic Transfer`, `Movement · Active · 1 PE`, `Set a Shade token within 12″; at End of Round you may re-set the unit around it.`],
       ] },
 
@@ -856,12 +856,12 @@ const GAME = {
         `Stomp | E | Ground | 2 | 5+ | – | – | 1 | –`,
       ],
       abilities:[
-        [`Squadron`, `Passive`, `Models may be set within 4″ of the Leading Model.`],
+        [`Squadron`, `Any · Passive`, `Models may be set within 4″ of the Leading Model.`],
         [`Blink`, `Movement · Active · 1 PE`, `PLACE (6), not into Engagement Range.`],
       ],
       upgrades:[
         { n:`Path of Shadows`, c:[20,40], t:`Any · Active · 1 PE`, d:`HIDDEN until it performs another action.` },
-        { n:`Fury of the Nerazim`, c:[20,30], t:`Passive`, d:`Particle Disruptors gain INSTANT against enemies that have already activated this Phase.` },
+        { n:`Fury of the Nerazim`, c:[20,30], t:`Assault · Passive`, d:`Particle Disruptors gain INSTANT against enemies that have already activated this Phase.` },
       ] },
 
     { id:'immortal', race:'protoss', name:`Immortal`, slot:'elite', role:`Tank`, base:`100mm`,
@@ -875,15 +875,15 @@ const GAME = {
       ],
       abilities:[
         [`Improved Barrier`, `Any · Reaction · 0 PE`, `When attacked while SHIELDED, the attacking weapon's Damage is capped at 1.`],
-        [`Indomitable`, `Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (4) 3+.`],
+        [`Indomitable`, `Assault · Passive`, `While Engaged it can shoot and be shot by unengaged enemies; the defender may Evade.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (4) 3+.`],
       ],
       upgrades:[
-        { n:`Shield Overcharge`, c:20, t:`Reaction · 1 PE`, d:`Before an Armour roll while SHIELDED: TOUGH (2).` },
+        { n:`Shield Overcharge`, c:20, t:`Any · Reaction · 1 PE`, d:`Before an Armour roll while SHIELDED: TOUGH (2).` },
         { n:`Left Phase Disruptor`, c:20, rep:`Left Photon Disruptor`, w:`Left Phase Disruptor | 12″ | Ground | 4 | 3+ | Armoured | D3 | 1 | PIERCE Armoured (3)` },
         { n:`Right Phase Disruptor`, c:20, rep:`Right Photon Disruptor`, w:`Right Phase Disruptor | 12″ | Ground | 4 | 3+ | Armoured | D3 | 1 | PIERCE Armoured (3), SIDEARM` },
-        { n:`Fury Unyielding`, c:20, t:`Passive`, d:`Within 3″ of a Mission Marker, ranged weapons gain CRITICAL HIT (1) against enemies also within 3″ of it.` },
-        { n:`For the Ancients`, c:20, t:`Passive`, d:`Weapons gain PRECISION (1) against targets more than 8″ away.` },
+        { n:`Fury Unyielding`, c:20, t:`Assault · Passive`, d:`Within 3″ of a Mission Marker, ranged weapons gain CRITICAL HIT (1) against enemies also within 3″ of it.` },
+        { n:`For the Ancients`, c:20, t:`Assault · Passive`, d:`Weapons gain PRECISION (1) against targets more than 8″ away.` },
       ] },
 
     { id:'sentry', race:'protoss', name:`Sentry`, plural:`Sentries`, slot:'support', role:`Lifesaver`, base:`50mm`,
@@ -913,12 +913,12 @@ const GAME = {
         `Strike | E | Ground | 1 | 4+ | – | – | 1 | –`,
       ],
       abilities:[
-        [`Our Minds as One`, `Passive`, `At Current Supply 2: its first Special Ability each Round costs 1 PE less and Psionic Storm dice get +1.`],
+        [`Our Minds as One`, `Any · Passive`, `At Current Supply 2: its first Special Ability each Round costs 1 PE less and Psionic Storm dice get +1.`],
         [`Feedback`, `Movement · Active · 1 PE`, `Enemy Mechanical or Psionic unit within 8″: until End of Round it takes NON-LETHAL DAMAGE (3) after each Active or Reaction ability it uses (not card abilities).`],
       ],
       upgrades:[
         { n:`Psionic Storm`, c:[20,30], t:`Movement · Active · 2 PE`, d:`Storm token within 10″ and LoS (stays if the Templar dies). End of each Phase: Blast Template on it; each covered unit rolls 3 dice + 1 per covered model, each 5+ is 1 non-lethal damage (Movement) or 1 Damage (Assault).` },
-        { n:`Farsight`, c:20, t:`Active · 1 PE`, d:`A friendly unit within 12″ may Evade all attacks until End of Round.` },
+        { n:`Farsight`, c:20, t:`Movement · Active · 1 PE`, d:`A friendly unit within 12″ may Evade all attacks until End of Round.` },
       ] },
 
     { id:'twilight', race:'protoss', name:`Twilight Templar`, plural:`Twilight Templar`, slot:'support', role:`Damage Dealer`, base:`40mm`, unique:1,
@@ -930,7 +930,7 @@ const GAME = {
         `Strike | E | Ground | 1 | 4+ | – | – | 1 | –`,
       ],
       abilities:[
-        [`Bound by the Khala`, `Reaction · 0 PE`, `When another friendly unit within 8″ loses Current Supply, ready one non-Unique Exhausted Tactical Card.`],
+        [`Bound by the Khala`, `Any · Reaction · 0 PE`, `When another friendly unit within 8″ loses Current Supply, ready one non-Unique Exhausted Tactical Card.`],
         [`Psionic Gale`, `Movement · Active · 2 PE`, `Like Psionic Storm, but each 4+ counts.`],
         [`Feedback`, `Movement · Active · 1 PE`, `Enemy Mechanical or Psionic unit within 8″ takes NON-LETHAL DAMAGE (3) after each Active/Reaction ability it uses this Round.`],
         [`Warp-In`, `Movement · Active · 1 PE`, `PLACE (6).`],
@@ -945,11 +945,11 @@ const GAME = {
         `Twilight Blades – Sweep | E | Ground | 6 | 2+ | Light | D3+1 | 1 | –`,
       ],
       abilities:[
-        [`Commander`, `Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
+        [`Commander`, `Any · Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
         [`Phase Prism`, `Movement · Passive`, `When deploying from Reserves, may PLACE (0) touching another friendly unit, which returns to Reserves; his activation ends.`],
         [`Lightning Dash`, `Assault · Reaction · 1 PE`, `After a successful Charge, may Charge a different enemy (no second Devastating Charge).`],
         [`Hierarch's Stand`, `Assault · Reaction · 1 PE`, `Redirect a ranged attack aimed at a friendly unit within 8″ to Artanis (if he's a valid target); he may Evade it.`],
-        [`Devastating Charge`, `Passive`, `IMPACT (6) 4+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (6) 4+.`],
       ] },
 
     { id:'zeratul', race:'protoss', name:`Zeratul`, slot:'hero', role:`Damage Dealer`, base:`40mm`, unique:1,
@@ -958,13 +958,13 @@ const GAME = {
       sizes:[[1,230,1]],
       weapons:[`Master Warp Blade | E | Ground | 4 | 3+ | Light, Armoured | D3 | 2 | INSTANT`],
       abilities:[
-        [`One with the Shadows`, `Passive`, `Becomes HIDDEN after fully resolving an action.`],
-        [`Prophetic Vision`, `Reaction · 1 PE · REPEATABLE`, `When attacked, Evade on an unmodifiable 4+.`],
+        [`One with the Shadows`, `Any · Passive`, `Becomes HIDDEN after fully resolving an action.`],
+        [`Prophetic Vision`, `Any · Reaction · 1 PE · REPEATABLE`, `When attacked, Evade on an unmodifiable 4+.`],
         [`Sentenced to Death`, `Movement · Active · 1 PE`, `Mark an enemy: his close combat attacks on it gain CRITICAL HIT (2).`],
         [`Void Prison`, `Movement · Active · 1 PE`, `Faction Indicator within 8″; enemies within 2″ of it get DEBUFF Speed (2).`],
         [`Void Blink`, `Assault · Active · 1 PE`, `If unengaged, PLACE (6).`],
         [`Shadow Strike`, `Combat · Active · 1 PE`, `Every enemy engaged with him takes HITS 4 (1).`],
-        [`Devastating Charge`, `Passive`, `IMPACT (4) 4+.`],
+        [`Devastating Charge`, `Assault · Passive`, `IMPACT (4) 4+.`],
       ] },
 
     { id:'tassadar', race:'protoss', name:`Tassadar`, slot:'hero', role:`Tactician`, base:`40mm`, unique:1,
@@ -976,7 +976,7 @@ const GAME = {
         `Strike | E | Ground | 6 | 4+ | – | – | 1 | –`,
       ],
       abilities:[
-        [`Commander`, `Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
+        [`Commander`, `Any · Passive`, `Counts +1 Supply for Mission Markers, objectives and Disengage checks.`],
         [`Force Wall`, `Movement · Active · 1 PE`, `Set two Force Wall tokens within 8″: Size ≤2 can't cross; a Size 3+ model crossing removes one.`],
         [`Executor's Will`, `Movement · Active · 1 PE`, `Mark two enemy units (no LoS). Next Assault Phase, if either ends its activation still marked, you may activate two friendly units in a row.`],
         [`Khala's Gift`, `Movement · Active · 0 PE`, `Another friendly Biological unit within 12″: its first Special Ability this Round costs 1 less.`],
@@ -989,8 +989,8 @@ const GAME = {
       tags:['PROTOSS', 'KHALAI'], ctags:`Armoured, Ground`,
       stats:{ sh:2, spd:`–`, arm:`5+`, eva:`–`, hp:8, size:3 }, supply:`0`, sizes:[[1,0,0]], weapons:[],
       abilities:[
-        [`Khalai Ingenuity`, `Passive · once per Round`, `A friendly unit within 4″ pays 1 PE less for a PE ability.`],
-        [`Structure`, `Passive`, `Can't activate or act, Supply 0, never holds markers.`],
+        [`Khalai Ingenuity`, `Any · Passive · once per Round`, `A friendly unit within 4″ pays 1 PE less for a PE ability.`],
+        [`Structure`, `Any · Passive`, `Can't activate or act, Supply 0, never holds markers.`],
         [`Warp Conduit`, `Movement · Passive · once per Round`, `A Ground unit may Deploy using the Pylon's base as its Entry Edge; its activation then ends.`],
       ] },
   ],
@@ -1311,6 +1311,60 @@ pre.roster{white-space:pre-wrap;background:var(--field);border:1px solid var(--l
 footer{max-width:820px;margin:0 auto;padding:18px 12px 40px;color:var(--faint);font-size:12.5px;border-top:1px solid var(--line)}
 footer p{margin:4px 0}
 
+/* card-style datasheet */
+.dcard{padding:12px 14px}
+.dcard.embedded{margin-top:10px;padding:10px 0 0;border-top:1px solid var(--line)}
+.dc-head{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+.dc-name{flex:1;min-width:0}
+.dc-name h3{margin:0;font-size:19px;line-height:1.2;text-transform:uppercase;letter-spacing:.05em;font-stretch:118%;color:var(--hi);text-shadow:var(--tglow);font-weight:700}
+.dc-sub{font-size:12.5px;color:var(--muted);margin-top:2px}
+.dc-head .cost{display:inline-flex;align-items:center;gap:5px;font-weight:700;font-size:18px;color:var(--hi);text-shadow:var(--tglow)}
+.dc-top{display:flex;flex-wrap:wrap;gap:10px 14px;align-items:flex-end;justify-content:space-between}
+.dc-stats{display:flex;gap:5px;flex-wrap:wrap}
+.st{width:56px;padding:5px 0 4px;text-align:center;border:1px solid rgba(var(--accent-rgb),.6);border-radius:3px;background:linear-gradient(180deg,rgba(var(--accent-rgb),.3),rgba(var(--accent-rgb),.06));box-shadow:inset 0 0 10px rgba(var(--accent-rgb),.22)}
+.st b{display:block;font-size:23px;line-height:1.05;font-weight:700;color:var(--hi);text-shadow:var(--tglow)}
+.st span{display:block;margin-top:2px;font-size:8.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--head);white-space:nowrap}
+.st.mod{border-color:var(--mod)} .st.mod b{color:var(--mod)}
+.msup{text-align:center}
+.msrow{display:flex;gap:4px}
+.ms{min-width:42px;border:1px solid var(--line2);border-radius:3px;overflow:hidden;background:var(--field)}
+.ms span{display:block;padding:2px 6px 1px;font-weight:700;font-size:15px;color:var(--text)}
+.ms b{display:block;padding:0 6px 1px;font-size:13px;background:rgba(var(--accent-rgb),.22);color:var(--hi)}
+.ms.cur{border-color:var(--accent);box-shadow:0 0 10px var(--glow)}
+.ms.cur b{background:var(--accent);color:#06101c}
+.msup small{display:block;margin-top:3px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.dc-load{margin-top:10px;font-size:13px;color:var(--muted);display:grid;gap:1px}
+.dc-load b{color:var(--text);font-weight:600}
+.dc-ph{position:relative;margin-top:16px;padding:16px 10px 6px;border:1px solid rgba(var(--accent-rgb),.4);border-radius:3px;background:linear-gradient(180deg,rgba(var(--accent-rgb),.07),transparent 60px)}
+.dc-ph>h4{position:absolute;top:-10px;left:8px;margin:0;padding:2px 10px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;font-stretch:120%;background:var(--accent);color:#06101c;border-radius:2px;box-shadow:0 0 10px var(--glow)}
+.dc-ph .weapons{margin-bottom:4px}
+.ab{margin:6px 0;font-size:14px;line-height:1.5}
+.ab>b{text-transform:uppercase;letter-spacing:.02em;color:var(--hi);font-weight:700}
+.abn{display:block;font-size:12.5px;color:var(--warn)}
+.pill{display:inline-block;margin-right:3px;padding:1px 5px;border-radius:2px;font-size:10px;font-weight:800;line-height:1.4;letter-spacing:.05em;text-transform:uppercase;vertical-align:1px;color:#fff}
+.pill.k-active{background:#2b7bd0}
+.pill.k-reaction{background:#d4850a}
+.pill.k-passive{background:#c2262f}
+.pill.cst{background:#23963f}
+.pill.x{background:transparent;border:1px solid var(--line2);color:var(--muted);font-weight:700}
+.pill.upg{background:transparent;border:1px solid var(--head);color:var(--head)}
+.dc-foot{margin-top:10px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.secthead{margin:22px 2px 10px;font-size:13px;text-transform:uppercase;letter-spacing:.11em;font-stretch:125%;color:var(--head);display:flex;align-items:baseline}
+.secthead .r{margin-left:auto;font-size:12px;letter-spacing:.03em;color:var(--muted);text-transform:none;font-stretch:100%}
+:root[data-theme="light"] :is(.ms.cur b,.dc-ph>h4){color:#fff}
+
+/* cards tab */
+.roundbar{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.roundno{text-align:center;font-size:34px;line-height:1;font-weight:800;font-stretch:120%;color:var(--hi);text-shadow:var(--tglow);min-width:64px}
+.roundno small{display:block;margin-bottom:3px;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--head)}
+.roundinfo{flex:1;min-width:180px}
+.roundinfo b{color:var(--hi)}
+.roundbtns{display:flex;flex-direction:column;gap:6px}
+.pcard{padding:12px 14px}
+.pcard .dc-head{align-items:center;margin-bottom:4px}
+.pcard.used :is(.pc-body,.dc-name){opacity:.4}
+.stamp{position:absolute;right:18px;top:50px;transform:rotate(-10deg);padding:2px 12px;border:2px solid var(--bad);border-radius:3px;color:var(--bad);font-size:20px;font-weight:800;letter-spacing:.2em;text-transform:uppercase;font-stretch:120%;text-shadow:0 0 8px rgba(255,93,77,.5);pointer-events:none}
+
 @media (max-width:520px){
   body{font-size:14.5px}
   .card,.unit{--b:7px}
@@ -1326,6 +1380,12 @@ footer p{margin:4px 0}
   .stats th,.stats td{padding:4px 2px}
   .stats th{font-size:9.5px;letter-spacing:.02em;font-stretch:100%}
   .stats td{font-size:15px}
+  .dcard,.pcard{padding:11px 10px}
+  .st{width:44px} .st b{font-size:18px} .st span{font-size:7px;letter-spacing:0}
+  .ms{min-width:36px} .ms span{font-size:13px}
+  .dc-name h3{font-size:16.5px}
+  .dc-ph{padding:15px 8px 5px}
+  .roundbtns{flex-direction:row;width:100%} .roundbtns .btn{flex:1}
   .tabs{padding:0 2px}
   .tabs button{padding:11px 7px 10px;font-size:11.5px;letter-spacing:.04em;font-stretch:104%}
   /* weapon rows stack instead of scrolling sideways */
@@ -1358,6 +1418,7 @@ footer p{margin:4px 0}
   #print ul{margin:3pt 0;padding-left:14pt}
   #print li{font-size:9.5pt}
   #print .foot{margin-top:14pt;font-size:8pt;color:#444}
+  #print .pph>b{display:block;margin-top:5pt;font-size:9pt;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #999}
 }
 </style>
 </head>
@@ -1369,9 +1430,10 @@ footer p{margin:4px 0}
 </header>
 <div class="budget" id="bar"></div>
 <nav class="tabbar"><div class="tabs" role="tablist">
+  <button role="tab" data-act="tab" data-tab="army">Army</button>
   <button role="tab" data-act="tab" data-tab="build">Build</button>
-  <button role="tab" data-act="tab" data-tab="sheets">Datasheets</button>
-  <button role="tab" data-act="tab" data-tab="plan">Supply plan</button>
+  <button role="tab" data-act="tab" data-tab="play">Cards</button>
+  <button role="tab" data-act="tab" data-tab="plan">Supply</button>
   <button role="tab" data-act="tab" data-tab="roster">Roster</button>
 </div></nav>
 <main id="view"></main>
@@ -1577,6 +1639,29 @@ const Engine = (() => {
     return msg;
   }
 
+  // ── ability timing: "Assault · Reaction · 1 CP · Once per Game" → phase, kind, cost, extras ──
+  const PHASES = ['Any', 'Movement', 'Assault', 'Combat', 'Scoring'];
+  function timing(t) {
+    const parts = String(t || '').split(' · ').map(p => p.trim()).filter(Boolean);
+    const phase = PHASES.includes(parts[0]) ? parts.shift() : 'Any';
+    let kind = 'Passive', cost = '';
+    const extra = [];
+    parts.forEach(p => {
+      if (/^(Active|Reaction|Passive)$/.test(p)) kind = p;
+      else if (/^[\dX][\d–-]*\s*(CP|BM|PE)$/.test(p)) cost = p;
+      else extra.push(p);
+    });
+    return { phase, kind, cost, extra };
+  }
+  // "1–3 → 0 · 4–6 → 1" → boxes, marking the bracket the squad starts in
+  function supplyProfile(def, n) {
+    return String(def.supply).split(' · ').map(seg => {
+      const [m, sup] = seg.includes('→') ? seg.split('→').map(v => v.trim()) : ['1', seg.trim()];
+      const [lo, hi] = m.split(/[–-]/).map(Number);
+      return { models: m.replace('–', '-'), supply: sup, cur: n >= lo && n <= (hi || lo) };
+    });
+  }
+
   // ── effective datasheet (whole-unit upgrades applied; Specialist weapons listed separately) ──
   function effective(x) {
     const d = x.def;
@@ -1602,8 +1687,8 @@ const Engine = (() => {
         });
       }
     }));
-    const abilities = (d.abilities || []).map(([n, t, txt, nt]) => ({ n, t, d: txt, note: nt }));
-    x.ups.forEach(u => { if (u.d) abilities.push({ n: u.n, t: u.t || '', d: u.d, upg: true }); });
+    const abilities = (d.abilities || []).map(([n, t, txt, nt]) => ({ n, t, d: txt, note: nt, ...timing(t) }));
+    x.ups.forEach(u => { if (u.d) abilities.push({ n: u.n, t: u.t || '', d: u.d, upg: true, ...timing(u.t) }); });
     return { stats, mod, weapons, abilities };
   }
 
@@ -1689,6 +1774,8 @@ const Engine = (() => {
       cards: Array.isArray(l.cards) ? l.cards.map(String) : [],
       mission: GAME.missions.some(m => m.name === l.mission) ? l.mission : GAME.missions[1].name,
       deploy: l.deploy && typeof l.deploy === 'object' ? { ...l.deploy } : {},
+      used: l.used && typeof l.used === 'object' ? { ...l.used } : {},   // card key → true once Activated this Round
+      round: Math.max(1, Number(l.round) || 1),
       updated: l.updated || Date.now(),
     };
   }
@@ -1839,7 +1926,20 @@ const Engine = (() => {
     return normalize({ ...x, units: x.units.map(([id, n, up]) => ({ id, n, up: up || [] })) });
   };
 
-  return { SLOTS, SLOT_NAME, units: U, factions: F, cards: C, fmt, weapon, upCost, entry, evaluate, effective, loadout, loadoutText,
+  // Every card in play, each copy with its own key: faction "fac", tactical/creep "<id>#<copy>".
+  function cardsInPlay(list) {
+    const out = [], seen = {};
+    const fac = F[list.faction];
+    if (fac && fac.race === list.race) out.push({ key: 'fac', card: fac, faction: true, passive: false });
+    (list.cards || []).forEach(id => {
+      const c = C[id]; if (!c) return;
+      seen[id] = (seen[id] || 0) + 1;
+      out.push({ key: `${id}#${seen[id]}`, card: c, copy: seen[id], passive: c.kind === 'creep' });
+    });
+    return out;
+  }
+
+  return { SLOTS, SLOT_NAME, PHASES, timing, supplyProfile, cardsInPlay, units: U, factions: F, cards: C, fmt, weapon, upCost, entry, evaluate, effective, loadout, loadoutText,
     scaleInfo, missionValues, supplyPlan, autoPlan, newList, normalize, addUnit, toggleUpgrade, toText, fromText,
     encodeShare, decodeShare, EXAMPLES, example, uid };
 })();
@@ -1856,7 +1956,7 @@ const Engine = (() => {
   const fmt = E.fmt;
   const KEY = 'supplyline.v1';
   const SLOT_ORDER = ['hero', 'core', 'elite', 'support', 'air'];
-  const ui = { tab: 'build', open: new Set(), openCards: new Set(), modal: null, q: '', filter: 'all', peek: null };
+  const ui = { tab: null, open: new Set(), openCards: new Set(), modal: null, q: '', filter: 'all', peek: null };
 
   // ── storage ──
   function load() {
@@ -1989,35 +2089,64 @@ const Engine = (() => {
       </header>
       ${sizes}${ups}${load}
       ${errs.map(p => `<div class="uerr">⚠ ${esc(p.msg)}</div>`).join('')}
-      ${open ? `${datasheet(x)}<div class="uactions" style="margin-top:8px">
+      ${open ? `${dcard(x, { embedded: true })}<div class="uactions" style="margin-top:8px">
         <button class="btn small" data-act="dup" data-uid="${uid}">Duplicate</button>
         <button class="btn small danger" data-act="remove" data-uid="${uid}">Remove</button></div>` : ''}
     </article>`;
   }
 
   // Effective datasheet: stats with numeric upgrades applied, weapons, abilities, loadout.
-  function datasheet(x, opts = {}) {
-    const d = x.def, eff = E.effective(x);
-    const s = eff.stats;
-    const cell = (k, v) => `<td${eff.mod[k] ? ` class="mod" title="${esc(eff.mod[k])}"` : ''}>${esc(v)}</td>`;
-    const hasSh = s.sh != null;
-    const stats = `<div class="tw-wrap"><table class="stats"><tr>${hasSh ? '<th>Shield</th>' : ''}<th>Speed</th><th>Armour</th><th>Evade</th><th>HP</th><th>Size</th><th>Supply</th></tr>
-      <tr>${hasSh ? cell('sh', s.sh) : ''}${cell('spd', s.spd)}${cell('arm', s.arm)}${cell('eva', s.eva)}${cell('hp', s.hp)}${cell('size', s.size)}<td${x.poolSupply !== x.supply ? ' class="mod" title="counts 0 for the Supply Pool"' : ''}>${x.supply}${x.poolSupply !== x.supply ? '*' : ''}</td></tr></table></div>`;
-    const wrow = w => {
+  // ── card-style datasheet: stat tiles, Models / Supply boxes, abilities and weapons grouped by phase ──
+  const PHASE_LABEL = { Any: 'Any phase', Movement: 'Movement phase', Assault: 'Assault phase', Combat: 'Combat phase', Scoring: 'Scoring phase' };
+  function abilityHtml(a) {
+    return `<p class="ab"><b>${esc(a.n)}:</b> <span class="pill k-${a.kind.toLowerCase()}">${a.kind}</span>${a.cost ? `<span class="pill cst">${esc(a.cost)}</span>` : ''}${a.extra.map(x => `<span class="pill x">${esc(x)}</span>`).join('')}${a.upg ? '<span class="pill upg">Upgrade</span>' : ''} ${esc(a.d)}${a.note ? `<span class="abn">⚑ ${esc(a.note)}</span>` : ''}</p>`;
+  }
+  function weaponsTable(ws) {
+    if (!ws.length) return '';
+    const row = w => {
       const set = k => (w.setBy || []).includes(k) ? ' class="mod"' : '';
       const kws = w.kw.map(k => (w.newKw || []).includes(k) ? `<span class="mod">${esc(k)}</span>` : esc(k)).join(', ');
       const src = w.spec ? `Specialist upgrade · 1 model${w.replaces ? `, instead of ${w.replaces}` : ', extra weapon'}`
         : w.replaced ? `Upgrade · replaces ${w.replaced}` : w.src ? 'Upgrade · extra weapon' : '';
-      return `<tr class="${w.cc ? 'cc' : ''}"><td${w.src ? ' class="mod"' : ''}>${esc(w.name)}${src ? `<span class="wsrc">${esc(src)}</span>` : ''}</td>
+      return `<tr><td${w.src ? ' class="mod"' : ''}>${esc(w.name)}${src ? `<span class="wsrc">${esc(src)}</span>` : ''}</td>
         <td data-l="Rng">${esc(w.rng)}</td><td data-l="Tgt">${esc(w.tgt)}</td><td data-l="RoA">${esc(w.roa)}</td><td data-l="Hit">${esc(w.hit)}</td><td data-l="Surge"${set('surge')}>${esc(w.surge)}</td><td data-l="S.Die"${set('sd')}>${esc(w.sd)}</td><td data-l="Dmg">${esc(w.dmg)}</td><td class="kw${kws ? '' : ' none'}">${kws || '–'}</td></tr>`;
     };
-    const weapons = eff.weapons.length ? `<div class="tw-wrap"><table class="weapons"><tr><th>Weapon</th><th>Rng</th><th>Tgt</th><th>RoA</th><th>Hit</th><th>Surge</th><th>S.Die</th><th>Dmg</th><th>Keywords</th></tr>
-      ${eff.weapons.map(wrow).join('')}</table></div>` : '';
-    const abl = `<ul class="abl">${eff.abilities.map(a => `<li><b>${esc(a.n)}</b>${a.upg ? '<span class="u">upgrade</span>' : ''}${a.t ? `<span class="t">${esc(a.t)}</span>` : ''} — ${esc(a.d)}${a.note ? `<span class="n">⚑ ${esc(a.note)}</span>` : ''}</li>`).join('')}</ul>`;
-    const load = d.summoned ? '' : `<div class="loadline" style="margin:0"><b>Loadout</b><br>${E.loadoutText(E.loadout(x)).map(l => esc(l).replace(/^([^:]+):/, '<b>$1:</b>')).join('<br>')}</div>`;
-    const meta = `<div class="meta">${d.summoned ? `Summoned by ${esc(d.by)} · free, no slot` : `${E.SLOT_NAME[d.slot]} · ${esc(d.role)}`} · ${esc(d.base)} · ${esc(d.tags.join(', '))} | ${esc(d.ctags)} · Supply ${esc(d.supply)}</div>`;
-    return `<div class="sheet">${opts.title ? `<h4 style="margin:0">${esc(opts.title)}</h4>` : ''}${meta}${load}${stats}${weapons}${abl}</div>`;
+    return `<div class="tw-wrap"><table class="weapons"><tr><th>Name</th><th>Rng</th><th>Target</th><th>RoA</th><th>Hit</th><th>Surge</th><th>S.Die</th><th>Dmg</th><th>Keywords</th></tr>${ws.map(row).join('')}</table></div>`;
   }
+  // Ranged weapons live in the Assault phase, close combat weapons in the Combat phase — as on the cards.
+  function phaseGroups(abilities, weapons = []) {
+    return E.PHASES.map(ph => ({
+      ph,
+      weapons: weapons.filter(w => (ph === 'Assault' && !w.cc) || (ph === 'Combat' && w.cc)),
+      abilities: abilities.filter(a => a.phase === ph),
+    })).filter(g => g.weapons.length || g.abilities.length);
+  }
+  const phaseSections = groups => groups.map(g => `<section class="dc-ph"><h4>${PHASE_LABEL[g.ph]}</h4>${weaponsTable(g.weapons)}${g.abilities.map(abilityHtml).join('')}</section>`).join('');
+  function supplyBoxes(x) {
+    const boxes = E.supplyProfile(x.def, x.models).map(p => `<div class="ms${p.cur && !x.def.summoned ? ' cur' : ''}"><span>${esc(p.models)}</span><b>${esc(p.supply)}</b></div>`).join('');
+    return `<div class="msup" title="Models remaining → Current Supply"><div class="msrow">${boxes}</div><small>Models / Supply</small></div>`;
+  }
+  function dcard(x, opts = {}) {
+    const d = x.def, eff = E.effective(x), s = eff.stats;
+    const tile = (k, label, v) => `<div class="st${eff.mod[k] ? ' mod' : ''}"${eff.mod[k] ? ` title="${esc(eff.mod[k])}"` : ''}><b>${esc(v)}</b><span>${label}</span></div>`;
+    const tiles = (s.sh != null ? tile('sh', 'Shield', s.sh) : '') + tile('spd', 'Speed', s.spd) + tile('arm', 'Armour', s.arm)
+      + tile('eva', 'Evade', s.eva) + tile('hp', 'Hit points', s.hp) + tile('size', 'Size', s.size);
+    const sub = d.summoned ? `Summoned by ${esc(d.by)} · free, no slot`
+      : `${E.SLOT_NAME[d.slot]} · ${esc(d.role)} · Ø${esc(d.base.replace(/mm$/, ' mm'))}${d.unique ? ' · <span class="tag uq">Unique</span>' : ''}`;
+    const head = opts.embedded ? '' : `<header class="dc-head"><div class="dc-name"><h3>${esc(x.label)}</h3><div class="dc-sub">${sub}</div></div>
+      ${d.summoned ? '' : `<span class="cost"><i class="ico ico-min" aria-hidden="true"></i>${fmt(x.cost)}</span>`}</header>`;
+    const ups = x.ups.length ? `<div><b>Upgrades:</b> ${esc(x.ups.map(u => u.n).join(', '))}</div>` : '';
+    const load = d.summoned ? '' : E.loadoutText(E.loadout(x)).map(l => `<div>${esc(l).replace(/^([^:]+):/, '<b>$1:</b>')}</div>`).join('');
+    const pool = x.poolSupply !== x.supply ? `<div class="mod">Counts 0 Supply for the Supply Pool (Advanced Medic Facilities).</div>` : '';
+    return `<article class="dcard${opts.embedded ? ' embedded' : ' card'}" style="${slotVar(d.slot || 'core')}">${head}
+      ${opts.embedded ? `<div class="dc-sub" style="margin-bottom:8px">${sub}</div>` : ''}
+      <div class="dc-top"><div class="dc-stats">${tiles}</div>${supplyBoxes(x)}</div>
+      ${ups || load || pool ? `<div class="dc-load">${ups}${load}${pool}</div>` : ''}
+      ${phaseSections(phaseGroups(eff.abilities, eff.weapons))}
+      <footer class="dc-foot">${esc(d.tags.join(', '))} · Combat tags: ${esc(d.ctags)}</footer>
+    </article>`;
+  }
+  const cardAbilities = c => c.abilities.map(([n, t, d]) => ({ n, t, d, ...E.timing(t) }));
 
   function renderCards(l, ev) {
     const fac = ev.fac;
@@ -2048,29 +2177,47 @@ const Engine = (() => {
     </section>`;
   }
 
-  // ── datasheets tab ──
-  function renderSheets(l, ev) {
-    const xs = ev.entries.filter(x => x.def);
+  // ── army tab: every unit in the list as a card ──
+  function renderArmy(l, ev) {
+    const xs = SLOT_ORDER.flatMap(t => ev.entries.filter(x => x.def && x.def.slot === t));
+    if (!xs.length) return `<div class="card empty">No units yet.<br><br><button class="btn primary" data-act="tab" data-tab="build">Build your list</button></div>`;
     const summonIds = new Set();
     if (ev.fac) (ev.fac.summons || []).forEach(id => summonIds.add(id));
     xs.forEach(x => (x.def.summons || []).forEach(id => summonIds.add(id)));
-    const cardBlock = (name, sub, abilities, note) => `<div class="crow"><span class="nm" style="cursor:default">${esc(name)} <small class="muted">${sub}</small>
-      <div class="cabl" style="padding-top:4px">${abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${esc(a[2])}</div>`).join('')}${note ? `<div>${esc(note)}</div>` : ''}</div></span></div>`;
-    const uniqCards = [...new Set(ev.cards)];
-    const res = `<section class="card"><h3>Resources <span class="r">${ev.res} ${ev.race ? ev.race.res : ''} per Round</span></h3>
-      <div class="small muted">Each card generates its ${ev.race ? ev.race.resName : 'resource'} when Exhausted (refreshes every Round). Using a card's own ability Exhausts it instead.</div>
-      <div class="small" style="margin-top:6px">${ev.resBy.map(r => `${esc(r.name)} <b>${r.n}</b>`).join(' · ') || '—'}</div></section>`;
-    return res
-      + (xs.length ? xs.map(x => `<section class="card unit" style="${slotVar(x.def.slot)}"><header style="cursor:default"><span class="badge">${E.SLOT_NAME[x.def.slot]} · ${x.supply} Supply</span><h4>${esc(x.label)}</h4><span class="cost"><i class="ico ico-min" aria-hidden="true"></i>${fmt(x.cost)}</span></header>
-          ${x.ups.length ? `<div class="loadline">+ ${esc(x.ups.map(u => u.n).join(', '))}</div>` : ''}${datasheet(x)}</section>`).join('')
-        : `<div class="empty">Add units on the Build tab to see their datasheets.</div>`)
-      + `<section class="card"><h3>Cards</h3>
-        ${ev.fac ? cardBlock(ev.fac.name, 'Faction card', ev.fac.abilities) : ''}
-        ${uniqCards.map(c => cardBlock(c.name, c.kind === 'creep' ? 'Creep card' : `Tactical · ${c.gas} Gas`, c.abilities, c.note)).join('')}</section>`
-      + (summonIds.size ? `<section class="card"><h3>Summoned units <span class="r">free · no slot</span></h3>
-        ${[...summonIds].map(id => { const d = E.units[id]; return d ? `<div style="margin-bottom:10px"><b>${esc(d.name)}</b> <small class="muted">via ${esc(d.by)}</small>${datasheet(summonedEntry(d))}</div>` : ''; }).join('')}</section>` : '');
+    return xs.map(x => dcard(x)).join('')
+      + (summonIds.size ? `<h3 class="secthead">Summoned during play <span class="r">free · no slot</span></h3>
+        ${[...summonIds].map(id => E.units[id] ? dcard(summonedEntry(E.units[id])) : '').join('')}` : '');
   }
   const summonedEntry = d => E.entry({ uid: 'peek', id: d.id, n: d.sizes[0][0], up: [] });
+
+  // ── cards tab: mark cards as used during a Round, ready them all for the next one ──
+  function renderPlay(l, ev) {
+    const inPlay = E.cardsInPlay(l);
+    const res = ev.race ? ev.race.res : '';
+    const usable = inPlay.filter(c => !c.passive);
+    const ready = usable.filter(c => !l.used[c.key]);
+    const resReady = ready.reduce((a, c) => a + (c.card.res || 0), 0);
+    const top = `<section class="card roundbar">
+      <div class="roundno"><small>Round</small>${l.round}</div>
+      <div class="roundinfo"><b>${ready.length}</b> of ${usable.length} cards ready · <b>${resReady} ${res}</b> available
+        <div class="small muted">Exhaust a card for its ${ev.race ? ev.race.resName : 'resource'}, or use one of its abilities (that exhausts it too). Tap Activate when you do.</div></div>
+      <div class="roundbtns"><button class="btn primary" data-act="new-round">New round</button><button class="btn small ghost" data-act="reset-round">Reset to Round 1</button></div>
+    </section>`;
+    if (!inPlay.length) return top + `<div class="card empty">No cards yet — pick a Faction card and add Tactical cards on the Build tab.</div>`;
+    const item = ({ key, card, faction, passive, copy }) => {
+      const used = !!l.used[key];
+      const n = l.cards.filter(id => id === card.id).length;
+      const sub = faction ? `Faction card · +${card.res} ${res}` : passive ? 'Creep card · always in effect'
+        : `Tactical card${n > 1 ? ` · copy ${copy} of ${n}` : ''} · ${card.res ? `+${card.res} ${res}` : `<span style="color:var(--warn)">no ${res}</span>`}`;
+      return `<article class="card pcard${used ? ' used' : ''}" style="${slotVar(faction ? 'hero' : 'core')}">
+        <header class="dc-head"><div class="dc-name"><h3>${esc(card.name)}</h3><div class="dc-sub">${sub}${card.unique ? ' · <span class="tag uq">Unique</span>' : ''}</div></div>
+          ${passive ? '' : `<button class="btn${used ? ' ghost' : ''}" data-act="use" data-key="${esc(key)}" aria-pressed="${used}">${used ? 'Undo' : 'Activate'}</button>`}</header>
+        <div class="pc-body">${phaseSections(phaseGroups(cardAbilities(card)))}${card.note ? `<p class="small muted">${esc(card.note)}</p>` : ''}</div>
+        ${used ? '<span class="stamp" aria-hidden="true">Used</span>' : ''}
+      </article>`;
+    };
+    return top + inPlay.map(item).join('');
+  }
 
   // ── supply plan tab ──
   function renderPlan(l, ev) {
@@ -2123,12 +2270,14 @@ const Engine = (() => {
     const cards = [...new Set(ev.cards)].map(c => { const n = ev.cards.filter(z => z === c).length; return `<tr><td>${esc(c.name)}${n > 1 ? ' ×' + n : ''}</td><td>${E.SLOTS.filter(t => c.slots[t]).map(t => `${c.slots[t] * n} ${E.SLOT_NAME[t]}`).join(', ') || '—'}</td><td>${c.res * n} ${ev.race.res}</td><td style="text-align:right">${c.gas * n}</td></tr>`; }).join('');
     const sheets = ev.entries.filter(x => x.def).map(x => {
       const eff = E.effective(x), s = eff.stats;
+      const prof = E.supplyProfile(x.def, x.models).map(p => `${p.models}: ${p.supply}`).join(' · ');
+      const groups = phaseGroups(eff.abilities, eff.weapons).map(g => `<div class="pph"><b>${PHASE_LABEL[g.ph]}</b>
+        ${g.weapons.length ? `<table><tr><th>Weapon</th><th>Rng</th><th>Tgt</th><th>RoA</th><th>Hit</th><th>Surge</th><th>S.Die</th><th>Dmg</th><th>Keywords</th></tr>
+          ${g.weapons.map(w => `<tr><td>${esc(w.name)}${w.spec ? ' (1 model)' : ''}</td><td>${esc(w.rng)}</td><td>${esc(w.tgt)}</td><td>${esc(w.roa)}</td><td>${esc(w.hit)}</td><td>${esc(w.surge)}</td><td>${esc(w.sd)}</td><td>${esc(w.dmg)}</td><td>${esc(w.kw.join(', ') || '–')}</td></tr>`).join('')}</table>` : ''}
+        ${g.abilities.length ? `<ul>${g.abilities.map(a => `<li><b>${esc(a.n)}</b> (${esc([a.kind, a.cost, ...a.extra].filter(Boolean).join(' · '))}${a.upg ? ' · upgrade' : ''}): ${esc(a.d)}</li>`).join('')}</ul>` : ''}</div>`).join('');
       return `<div class="ds"><h3>${esc(x.label)} <span class="muted">— ${fmt(x.cost)}</span></h3>
-        <div class="muted">${s.sh != null ? `Shield ${s.sh} · ` : ''}Speed ${esc(s.spd)} · Armour ${esc(s.arm)} · Evade ${esc(s.eva)} · HP ${esc(s.hp)} · Size ${esc(s.size)} · Supply ${x.supply}</div>
-        <div class="muted">${esc(E.loadoutText(E.loadout(x)).join(' · '))}</div>
-        <table><tr><th>Weapon</th><th>Rng</th><th>Tgt</th><th>RoA</th><th>Hit</th><th>Surge</th><th>S.Die</th><th>Dmg</th><th>Keywords</th></tr>
-        ${eff.weapons.map(w => `<tr><td>${esc(w.name)}${w.spec ? ' (1 model)' : ''}</td><td>${esc(w.rng)}</td><td>${esc(w.tgt)}</td><td>${esc(w.roa)}</td><td>${esc(w.hit)}</td><td>${esc(w.surge)}</td><td>${esc(w.sd)}</td><td>${esc(w.dmg)}</td><td>${esc(w.kw.join(', ') || '–')}</td></tr>`).join('')}</table>
-        <ul>${eff.abilities.map(a => `<li><b>${esc(a.n)}</b>${a.t ? ` (${esc(a.t)})` : ''}: ${esc(a.d)}</li>`).join('')}</ul></div>`;
+        <div class="muted">${s.sh != null ? `Shield ${s.sh} · ` : ''}Speed ${esc(s.spd)} · Armour ${esc(s.arm)} · Evade ${esc(s.eva)} · HP ${esc(s.hp)} · Size ${esc(s.size)} · Models/Supply ${esc(prof)}</div>
+        <div class="muted">${esc(E.loadoutText(E.loadout(x)).join(' · '))}</div>${groups}</div>`;
     }).join('');
     return `<h1>${esc(l.name)}</h1>
       <div>${esc(ev.race ? ev.race.name : '')} · ${esc(ev.fac ? ev.fac.name : 'no faction')} · ${sc.name} (${fmt(sc.limit)}) · Minerals ${fmt(ev.minerals)}/${fmt(sc.limit)} · Gas ${fmt(ev.gas)}/${fmt(sc.gasLimit)} · ${ev.res} ${ev.race ? ev.race.res : ''}/round</div>
@@ -2173,7 +2322,7 @@ const Engine = (() => {
           ${u.unique ? '<span class="tag uq">Unique</span>' : ''} ${u.tags.length > 1 ? `<span class="tag">${esc(u.tags.slice(1).join(', '))}</span>` : ''} <small class="muted">${peek ? '▲' : 'ⓘ'}</small></span></div>
         ${why ? `<div class="why">${esc(why)}</div>` : ''}
         <div class="opts">${u.sizes.map(s => `<button class="chip size" data-act="add" data-id="${u.id}" data-n="${s[0]}">${u.sizes.some(z => z[0] > 1) ? `${s[0]} model${s[0] > 1 ? 's' : ''} · ` : ''}<b>${s[1]}</b> <small>· ${s[2]} Supply</small></button>`).join('')}</div>
-        ${peek ? datasheet(summonedEntry(u)) : ''}
+        ${peek ? dcard(summonedEntry(u), { embedded: true }) : ''}
       </div>`;
     };
     const summoned = GAME.units.filter(u => u.race === l.race && u.summoned && (!q || u.name.toLowerCase().includes(q)));
@@ -2181,7 +2330,7 @@ const Engine = (() => {
       <input type="search" id="pickQ" data-act="pick-q" placeholder="Search ${esc(GAME.races[l.race].name)} units…" value="${esc(ui.q)}" autocomplete="off">
       <div class="chips" style="margin:0">${filters.map(f => `<button class="chip${ui.filter === f ? ' on' : ''}" data-act="pick-filter" data-f="${f}">${f === 'all' ? 'All' : E.SLOT_NAME[f]}</button>`).join('')}</div>`;
     const body = (shown.length ? shown.map(item).join('') : `<div class="empty">No match.</div>`)
-      + (summoned.length && (ui.filter === 'all') ? `<h4 class="pick" style="border:none">Summoned during play — free, no slot (info only)</h4>${summoned.map(u => `<div class="pick"><div class="top"><span class="nm" data-act="peek" data-id="${u.id}">${esc(u.name)} <small class="muted">via ${esc(u.by)} ${ui.peek === u.id ? '▲' : 'ⓘ'}</small></span></div>${ui.peek === u.id ? datasheet(summonedEntry(u)) : ''}</div>`).join('')}` : '');
+      + (summoned.length && (ui.filter === 'all') ? `<h4 class="pick" style="border:none">Summoned during play — free, no slot (info only)</h4>${summoned.map(u => `<div class="pick"><div class="top"><span class="nm" data-act="peek" data-id="${u.id}">${esc(u.name)} <small class="muted">via ${esc(u.by)} ${ui.peek === u.id ? '▲' : 'ⓘ'}</small></span></div>${ui.peek === u.id ? dcard(summonedEntry(u), { embedded: true }) : ''}</div>`).join('')}` : '');
     return { head, body };
   }
 
@@ -2260,7 +2409,8 @@ const Engine = (() => {
     const nm = $('#listName'); if (document.activeElement !== nm) nm.value = l.name;
     $('#bar').innerHTML = renderBar(l, ev);
     document.querySelectorAll('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === ui.tab)));
-    $('#view').innerHTML = ui.tab === 'sheets' ? renderSheets(l, ev) : ui.tab === 'plan' ? renderPlan(l, ev) : ui.tab === 'roster' ? renderRoster(l, ev) : renderBuild(l, ev);
+    const views = { army: renderArmy, build: renderBuild, play: renderPlay, plan: renderPlan, roster: renderRoster };
+    $('#view').innerHTML = (views[ui.tab] || renderBuild)(l, ev);
     renderModal(l, ev);
     document.title = `${l.name} — Supply Line`;
   }
@@ -2268,7 +2418,7 @@ const Engine = (() => {
   // ── actions ──
   const findEntry = uid => cur().units.find(u => u.uid === uid);
   const A = {
-    tab: t => { ui.tab = t.dataset.tab; render(); window.scrollTo(0, 0); },
+    tab: t => { ui.tab = store.tab = t.dataset.tab; persist(); render(); window.scrollTo(0, 0); },
     'goto-problems': () => { ui.tab = 'build'; render(); const p = $('#problems'); if (p) p.scrollIntoView({ behavior: 'smooth', block: 'center' }); },
     race: t => {
       const r = t.dataset.race, l = cur();
@@ -2298,6 +2448,9 @@ const Engine = (() => {
     'card-remove': t => commit(l => { l.cards = l.cards.filter(id => id !== t.dataset.id); }),
     'card-toggle': t => { const id = t.dataset.id; ui.openCards.has(id) ? ui.openCards.delete(id) : ui.openCards.add(id); render(); },
     creep: t => commit(l => { l.cards = l.cards.filter(id => !(E.cards[id] && E.cards[id].kind === 'creep')); l.cards.unshift(t.dataset.id); }),
+    use: t => commit(l => { const k = t.dataset.key; if (l.used[k]) delete l.used[k]; else l.used[k] = true; }),
+    'new-round': () => { commit(l => { l.used = {}; l.round += 1; }); toast(`Round ${cur().round} — all cards ready`); },
+    'reset-round': () => { commit(l => { l.used = {}; l.round = 1; }); toast('Back to Round 1 — all cards ready'); },
     deploy: t => commit(l => { const r = Number(t.dataset.r); if (r) l.deploy[t.dataset.uid] = r; else delete l.deploy[t.dataset.uid]; }),
     autoplan: () => commit(l => { l.deploy = E.autoPlan(l); }),
     clearplan: () => commit(l => { l.deploy = {}; }),
@@ -2351,6 +2504,7 @@ const Engine = (() => {
   window.addEventListener('storage', e => { if (e.key === KEY) { store = load(); render(); } });
 
   // ── boot ──
+  ui.tab = ['army', 'build', 'play', 'plan', 'roster'].includes(store.tab) ? store.tab : (cur().units.length ? 'army' : 'build');
   $('#dataver').textContent = `Data: ${GAME.version}. Supply Line is free, has no ads, and keeps your lists in this browser.`;
   applyTheme();
   const hm = location.hash.match(/^#l=([\w-]+)/);

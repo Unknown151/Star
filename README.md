@@ -8,9 +8,10 @@ A clean, fast army list builder for the StarCraft tabletop miniatures game — o
 
 Open `index.html` in any browser. No install, no build step, works offline. Lists are saved in the browser (localStorage); back them up from **Lists → Back up all** or export from the **Roster** tab.
 
-- **Build** — pick race, Faction card and scale; add units from the picker; tap sizes and upgrades on the row. ◆ marks a Specialist upgrade (one model). Tap a unit to see its effective datasheet and per-model loadout.
-- **Datasheets** — every unit with upgrades applied, card abilities, summoned units, and the CP / BM / PE your cards generate.
-- **Supply plan** — pick a mission, see the Supply Pool per Round and plan which units arrive when (or hit Auto-fill).
+- **Army** — every unit in the list laid out like its card: stat tiles, Models / Supply boxes (the squad's starting bracket lit up), and abilities and weapons grouped by phase, with upgrades applied and per-model loadouts.
+- **Build** — pick race, Faction card and scale; add units from the picker; tap sizes and upgrades on the row. ◆ marks a Specialist upgrade (one model).
+- **Cards** — the Faction, Tactical and Creep cards in play. Tap **Activate** when you exhaust one; **New round** readies them all and counts the Round.
+- **Supply** — pick a mission, see the Supply Pool per Round and plan which units arrive when (or hit Auto-fill).
 - **Roster** — copy as text, print, download `.txt` / `.json`, or copy a share link.
 
 The validator checks Minerals and Gas, Army Slots per type, faction tags, legal squad sizes, Unique units and cards, exactly one Creep card for Zerg, one Nova per army, Specialist limits and conflicting weapon swaps.
