@@ -20,6 +20,7 @@
                      w weapon string it grants · rep weapon it replaces (else it's added)
                      fx numeric effects for the effective datasheet:
                         {stat:'hp', add:1} · {w:'Weapon'|[..], kw:'KEYWORD (X)'} · {w:'Weapon', set:{surge,sd}} · {pool0:1}
+                        add unit:'id' to change a unit this one summons instead (Raven → Auto-Turret).
      tags:           faction tags — every one must be on the army's Faction Card.
      variantOf:      the unit a variant is printed under, e.g. RAPTOR (ZERGLING) → `Zergling`.
      nr:             NewRecruit's naming where it differs — on a unit {name, option} (Nova is "Nova" with
@@ -443,7 +444,8 @@ const GAME = {
         { n:`Corvid Reactor`, c:30, t:`Any · Passive`, d:`Its first Special Ability costs 1 CP less if it targets the closest enemy unit.` },
         { n:`Internal Tech Module`, c:20, t:`Movement · Passive`, d:`May Deploy from any non-Entry table edge, not within 8″ of enemies.` },
         { n:`Seeker Missile`, c:20, t:`Movement · Active · 1 CP`, d:`Enemy within 12″: at end of the Assault Phase, if Stationary or within 8″ of the Raven, it takes HITS 4 (2) (may Evade if Engaged).` },
-        { n:`Explosive Shrapnel Shells`, c:10, t:`Assault · Passive`, d:`Auto-Turret Gauss Cannon gets Surge Light and S Dice D3+1.` },
+        { n:`Explosive Shrapnel Shells`, c:10, t:`Assault · Passive`, d:`Auto-Turret Gauss Cannon gets Surge Light and S Dice D3+1.`,
+          fx:[{ unit:'autoturret', w:`Gauss Cannon`, set:{ surge:`Light`, sd:`D3+1` } }] },
       ] },
 
     { id:'raynor', race:'terran', name:`Jim Raynor`, slot:'hero', role:`Tactician`, base:`40mm`, unique:1,
@@ -1761,18 +1763,20 @@ const Engine = (() => {
       if (i >= 0) { w.replaced = u.rep; weapons[i] = w; } else weapons.push(w);
     });
     spec.forEach(u => { if (u.w) weapons.push({ ...weapon(u.w), src: u.n, spec: true, replaces: u.rep || null }); });
-    whole.forEach(u => (u.fx || []).forEach(f => {
-      if (f.stat) { stats[f.stat] = Number(stats[f.stat]) + f.add; mod[f.stat] = u.n; }
+    // the unit's own upgrade effects, plus (for a summoned unit) effects from its parent's upgrades
+    const fxs = whole.flatMap(u => (u.fx || []).filter(f => !f.unit).map(f => ({ ...f, src: u.n }))).concat(x.summonFx || []);
+    fxs.forEach(f => {
+      if (f.stat) { stats[f.stat] = Number(stats[f.stat]) + f.add; mod[f.stat] = f.src; }
       if (f.w) {
         const names = [].concat(f.w);
         weapons.forEach(w => {
           if (!names.includes(w.name)) return;
           if (f.kw) addKw(w, f.kw);
           if (f.set) { Object.assign(w, f.set); w.setBy = Object.keys(f.set); }
-          w.modBy = (w.modBy || []).concat(u.n);
+          w.modBy = (w.modBy || []).concat(f.src);
         });
       }
-    }));
+    });
     const abilities = (d.abilities || []).map(([n, t, txt, nt]) => ({ n, t, d: txt, note: nt, ...timing(t) }));
     x.ups.forEach(u => { if (u.d) abilities.push({ n: u.n, t: u.t || '', d: u.d, upg: true, ...timing(u.t) }); });
     return { stats, mod, weapons, abilities };
@@ -2099,6 +2103,27 @@ const Engine = (() => {
     return normalize({ ...x, units: x.units.map(([id, n, up]) => ({ id, n, up: up || [] })) });
   };
 
+  // Summoned units the list can bring into play (from the Faction card and from units), as entries with
+  // their parent's upgrade effects applied ({unit:'autoturret', …} in an upgrade's fx). Parents with
+  // different relevant upgrades give separate entries.
+  function summonedUnits(list) {
+    const found = new Map();
+    const add = (id, by, ups) => {
+      const def = U[id];
+      if (!def) return;
+      const fx = [], from = [];
+      ups.forEach(u => (u.fx || []).forEach(f => { if (f.unit === id) { fx.push({ ...f, src: u.n }); if (!from.includes(u.n)) from.push(u.n); } }));
+      const key = `sum:${id}${from.length ? ':' + from.join(',') : ''}`;
+      if (!found.has(key)) found.set(key, { key, def, fx, from, by: [] });
+      if (!found.get(key).by.includes(by)) found.get(key).by.push(by);
+    };
+    const fac = F[list.faction];
+    if (fac && fac.race === list.race) (fac.summons || []).forEach(id => add(id, fac.name, []));
+    (list.units || []).forEach(e => { const x = entry(e); if (x.def) (x.def.summons || []).forEach(id => add(id, x.def.name, x.ups)); });
+    return [...found.values()].map(s => ({ ...entry({ uid: s.key, id: s.def.id, n: s.def.sizes[0][0], up: [] }),
+      summonFx: s.fx, fromUps: s.from, summonedBy: s.by }));
+  }
+
   // Every card in play, each copy with its own key: faction "fac", tactical/creep "<id>#<copy>".
   function cardsInPlay(list) {
     const out = [], seen = {};
@@ -2112,7 +2137,7 @@ const Engine = (() => {
     return out;
   }
 
-  return { SLOTS, SLOT_NAME, PHASES, timing, supplyProfile, cardsInPlay, units: U, factions: F, cards: C, fmt, weapon, upCost, entry, evaluate, effective, loadout, loadoutText,
+  return { SLOTS, SLOT_NAME, PHASES, timing, supplyProfile, cardsInPlay, summonedUnits, units: U, factions: F, cards: C, fmt, weapon, upCost, entry, evaluate, effective, loadout, loadoutText,
     scaleInfo, missionValues, supplyPlan, autoPlan, newList, normalize, addUnit, toggleUpgrade, toText, fromText,
     toNewRecruit, fromNewRecruit, encodeShare, decodeShare, EXAMPLES, example, uid };
 })();
@@ -2253,6 +2278,7 @@ const Engine = (() => {
       return `<button class="chip${on ? ' on' : ''}" data-act="up" data-uid="${uid}" data-up="${esc(u.n)}" aria-pressed="${on}" title="${esc(upTitle(u))}">${u.sp ? '<i class="dia" title="Specialist">◆</i>' : ''}${esc(u.n)} <small>+${E.upCost(u, x.si)}</small></button>`;
     }).join('')}</div>` : '';
     const specOn = x.ups.some(u => u.sp);
+    const summons = (d.summons || []).map(id => E.units[id] && E.units[id].name).filter(Boolean);
     const load = specOn && !open ? `<div class="loadline">${E.loadoutText(E.loadout(x)).map(s => esc(s).replace(/^([^:]+):/, '<b>$1:</b>')).join('<br>')}</div>` : '';
     return `<article class="unit${errs.length ? ' err' : ''}${open ? ' open' : ''}" style="${slotVar(d.slot)}" data-uid="${uid}">
       <header data-act="toggle" data-uid="${uid}" role="button" aria-expanded="${open}" tabindex="0">
@@ -2261,6 +2287,7 @@ const Engine = (() => {
         <span class="cost"><i class="ico ico-min" aria-hidden="true"></i>${fmt(x.cost)}</span><span class="tw">▼</span>
       </header>
       ${sizes}${ups}${load}
+      ${summons.length ? `<div class="loadline">Summons <b>${esc(summons.join(', '))}</b> · free, no slot — card on the Army tab</div>` : ''}
       ${errs.map(p => `<div class="uerr">⚠ ${esc(p.msg)}</div>`).join('')}
       ${open ? `${dcard(x, { embedded: true })}<div class="uactions" style="margin-top:8px">
         <button class="btn small" data-act="dup" data-uid="${uid}">Duplicate</button>
@@ -2342,14 +2369,16 @@ const Engine = (() => {
     };
     const tiles = (s.sh != null ? tile('sh', 'Shield', s.sh) : '') + tile('spd', 'Speed', s.spd) + tile('arm', 'Armour', s.arm)
       + tile('eva', 'Evade', s.eva) + tile('hp', 'Hit points', s.hp) + tile('size', 'Size', s.size);
-    const sub = d.summoned ? `Summoned by ${esc(d.by)} · free, no slot`
+    const from = x.fromUps && x.fromUps.length ? x.fromUps : [];
+    const sub = d.summoned ? `Summoned by ${esc(d.by)}${from.length ? ` · ${esc(from.join(', '))}` : ''} · free, no slot`
       : `${E.SLOT_NAME[d.slot]} · ${x.supply} Supply · ${esc(d.role)} · Ø${esc(d.base.replace(/mm$/, ' mm'))}${d.unique ? ' · <span class="tag uq">Unique</span>' : ''}`;
     const tog = opts.key != null;   // collapsible (Army tab)
     const head = opts.embedded ? '' : `<header class="dc-head${tog ? ' tog' : ''}"${tog ? ` data-act="army-toggle" data-key="${esc(opts.key)}" role="button" tabindex="0" aria-expanded="${!!opts.open}"` : ''}>
       <div class="dc-name"><h3>${esc(x.label)}</h3><div class="dc-sub">${sub}</div></div>
-      ${d.summoned ? '' : `<span class="cost"><i class="ico ico-min" aria-hidden="true"></i>${fmt(x.cost)}</span>`}${tog ? '<span class="tw">▼</span>' : ''}</header>`;
+      ${d.summoned ? '<span class="tag">Summoned</span>' : `<span class="cost"><i class="ico ico-min" aria-hidden="true"></i>${fmt(x.cost)}</span>`}${tog ? '<span class="tw">▼</span>' : ''}</header>`;
     if (tog && !opts.open) return `<article class="dcard card closed" data-key="${esc(opts.key)}" style="${slotVar(d.slot || 'core')}">${head}</article>`;
-    const ups = x.ups.length ? `<div><b>Upgrades:</b> ${esc(x.ups.map(u => u.n).join(', '))}</div>` : '';
+    const ups = x.ups.length ? `<div><b>Upgrades:</b> ${esc(x.ups.map(u => u.n).join(', '))}</div>`
+      : from.length ? `<div class="mod"><b>Upgraded by ${esc(x.summonedBy.join(' / '))}:</b> ${esc(from.join(', '))}</div>` : '';
     const load = d.summoned ? '' : E.loadoutText(E.loadout(x)).map(l => `<div>${esc(l).replace(/^([^:]+):/, '<b>$1:</b>')}</div>`).join('');
     const pool = x.poolSupply !== x.supply ? `<div class="mod">Counts 0 Supply for the Supply Pool (Advanced Medic Facilities).</div>` : '';
     return `<article class="dcard${opts.embedded ? ' embedded' : ' card'}${tog ? ' open' : ''}"${tog ? ` data-key="${esc(opts.key)}"` : ''} style="${slotVar(d.slot || 'core')}">${head}
@@ -2393,16 +2422,11 @@ const Engine = (() => {
 
   // ── army tab: every unit as a card, A–Z, one open at a time ──
   function renderArmy(l, ev) {
-    const xs = ev.entries.filter(x => x.def).sort((a, b) => a.label.localeCompare(b.label, 'en', { numeric: true }));
-    if (!xs.length) return `<div class="card empty">No units yet.<br><br><button class="btn primary" data-act="tab" data-tab="build">Build your list</button></div>`;
-    const summonIds = new Set();
-    if (ev.fac) (ev.fac.summons || []).forEach(id => summonIds.add(id));
-    xs.forEach(x => (x.def.summons || []).forEach(id => summonIds.add(id)));
-    const card = (x, key) => dcard(x, { key, open: ui.armyOpen === key });
-    const summoned = [...summonIds].map(id => E.units[id]).filter(Boolean).sort((a, b) => a.name.localeCompare(b.name));
-    return xs.map(x => card(x, x.e.uid)).join('')
-      + (summoned.length ? `<h3 class="secthead">Summoned during play <span class="r">free · no slot</span></h3>
-        ${summoned.map(d => card(summonedEntry(d), 'sum:' + d.id)).join('')}` : '');
+    if (!ev.entries.some(x => x.def)) return `<div class="card empty">No units yet.<br><br><button class="btn primary" data-act="tab" data-tab="build">Build your list</button></div>`;
+    // summoned units (Auto-Turret, Pylon…) sit in the same A–Z list, after a bought unit of the same name
+    const items = ev.entries.filter(x => x.def).concat(E.summonedUnits(l))
+      .sort((a, b) => a.label.localeCompare(b.label, 'en', { numeric: true }) || (a.def.summoned ? 1 : 0) - (b.def.summoned ? 1 : 0));
+    return items.map(x => dcard(x, { key: x.e.uid, open: ui.armyOpen === x.e.uid })).join('');
   }
   const summonedEntry = d => E.entry({ uid: 'peek', id: d.id, n: d.sizes[0][0], up: [] });
 
@@ -2489,14 +2513,15 @@ const Engine = (() => {
     const rows = SLOT_ORDER.flatMap(t => ev.entries.filter(x => x.def && x.def.slot === t)).map(x => `<tr><td><b>${esc(x.label)}</b></td><td>${E.SLOT_NAME[x.def.slot]} · ${x.supply}</td>
       <td>${esc(x.ups.map(u => u.n).join(', ')) || '—'}${x.ups.some(u => u.sp) ? `<br><span class="muted">${esc(E.loadoutText(E.loadout(x), false).join(' · '))}</span>` : ''}</td><td style="text-align:right">${fmt(x.cost)}</td></tr>`).join('');
     const cards = [...new Set(ev.cards)].map(c => { const n = ev.cards.filter(z => z === c).length; return `<tr><td>${esc(c.name)}${n > 1 ? ' ×' + n : ''}</td><td>${E.SLOTS.filter(t => c.slots[t]).map(t => `${c.slots[t] * n} ${E.SLOT_NAME[t]}`).join(', ') || '—'}</td><td>${c.res * n} ${ev.race.res}</td><td style="text-align:right">${c.gas * n}</td></tr>`; }).join('');
-    const sheets = ev.entries.filter(x => x.def).map(x => {
+    const sheets = ev.entries.filter(x => x.def).concat(E.summonedUnits(l)).map(x => {
       const eff = E.effective(x), s = eff.stats;
       const prof = E.supplyProfile(x.def, x.models).map(p => `${p.models}: ${p.supply}`).join(' · ');
       const groups = phaseGroups(eff.abilities, eff.weapons).map(g => `<div class="pph"><b>${PHASE_LABEL[g.ph]}</b>
         ${g.weapons.length ? `<table><tr><th>Weapon</th><th>Rng</th><th>Tgt</th><th>RoA</th><th>Hit</th><th>Surge</th><th>S.Die</th><th>Dmg</th><th>Keywords</th></tr>
           ${g.weapons.map(w => `<tr><td>${esc(w.name)}${w.spec ? ' (1 model)' : ''}</td><td>${esc(w.rng)}</td><td>${esc(w.tgt)}</td><td>${esc(w.roa)}</td><td>${esc(w.hit)}</td><td>${esc(w.surge)}</td><td>${esc(w.sd)}</td><td>${esc(w.dmg)}</td><td>${esc(w.kw.join(', ') || '–')}</td></tr>`).join('')}</table>` : ''}
         ${g.abilities.length ? `<ul>${g.abilities.map(a => `<li><b>${esc(a.n)}</b> (${esc([a.kind, a.cost, ...a.extra].filter(Boolean).join(' · '))}${a.upg ? ' · upgrade' : ''}): ${esc(a.d)}</li>`).join('')}</ul>` : ''}</div>`).join('');
-      return `<div class="ds"><h3>${esc(x.label)} <span class="muted">— ${fmt(x.cost)}</span></h3>
+      const tail = x.def.summoned ? `summoned by ${x.summonedBy.join(' / ')}${x.fromUps.length ? ` · ${x.fromUps.join(', ')}` : ''} · free` : fmt(x.cost);
+      return `<div class="ds"><h3>${esc(x.label)} <span class="muted">— ${esc(tail)}</span></h3>
         <div class="muted">${s.sh != null ? `Shield ${s.sh} · ` : ''}Speed ${esc(s.spd)} · Armour ${esc(s.arm)} · Evade ${esc(s.eva)} · HP ${esc(s.hp)} · Size ${esc(s.size)} · Models/Supply ${esc(prof)}</div>
         <div class="muted">${esc(E.loadoutText(E.loadout(x)).join(' · '))}</div>${groups}</div>`;
     }).join('');

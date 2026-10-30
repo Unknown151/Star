@@ -256,6 +256,25 @@ test('Models / Supply boxes mark the starting bracket', () => {
   eq(E.supplyProfile(E.units.immortal, 1), [{ models: '1', supply: '2', cur: true }]);
   eq(E.supplyProfile(E.units.pdd, 1), [{ models: '1', supply: '0', cur: true }]);
 });
+test('summoned units: from the faction card and from units', () => {
+  eq(E.summonedUnits(list('terran', 'rr', 'skirmish', [['raven', 1], ['nova-stealth', 1]], [])).map(s => [s.def.id, s.summonedBy]),
+    [['pdd', ["Raynor's Raiders"]], ['autoturret', ['Raven']], ['decoy', ['Nova (Stealth Mode)']]]);
+  eq(E.summonedUnits(list('protoss', 'khalai', 'skirmish', [['zealot', 3]], [])).map(s => s.def.id), ['pylon']);
+  eq(E.summonedUnits(list('zerg', 'zs', 'skirmish', [['zergling', 12]], [])), []);
+});
+test('Explosive Shrapnel Shells upgrades the Raven\'s Auto-Turret, not the Raven', () => {
+  const [t] = E.summonedUnits(list('terran', 'taf', 'skirmish', [['raven', 1, ['Explosive Shrapnel Shells']]], []));
+  const g = E.effective(t).weapons.find(w => w.name === 'Gauss Cannon');
+  eq([g.surge, g.sd, g.setBy, g.modBy, t.fromUps], ['Light', 'D3+1', ['surge', 'sd'], ['Explosive Shrapnel Shells'], ['Explosive Shrapnel Shells']]);
+  eq(E.effective(E.entry({ uid: 'r', id: 'raven', n: 1, up: ['Explosive Shrapnel Shells'] })).weapons.map(w => [w.name, w.surge]), [['Railguns', '–']]);
+  const plain = E.effective(E.summonedUnits(list('terran', 'taf', 'skirmish', [['raven', 1]], []))[0]).weapons[0];
+  eq([plain.surge, plain.sd], ['–', '–']);
+});
+test('two Ravens, only one upgraded: two Auto-Turret cards', () => {
+  const s = E.summonedUnits(list('terran', 'taf', 'standard', [['raven', 1], ['raven', 1, ['Explosive Shrapnel Shells']]], []));
+  eq(s.map(x => [x.def.id, x.fromUps]), [['autoturret', []], ['autoturret', ['Explosive Shrapnel Shells']]]);
+  eq(new Set(s.map(x => x.e.uid)).size, 2, 'distinct keys');
+});
 test('cards in play: faction first, each copy keyed, creep is passive', () => {
   const l = list('zerg', 'ks', 'standard', [], ['creep-malignant', 'pool', 'pool', 'lair']);
   eq(E.cardsInPlay(l).map(c => [c.key, c.passive]), [['fac', false], ['creep-malignant#1', true], ['pool#1', false], ['pool#2', false], ['lair#1', false]]);
@@ -490,7 +509,12 @@ test('data: weapons, sizes, upgrades and references are well-formed', () => {
       if (Array.isArray(up.c) && up.c.length !== u.sizes.length) problems.push(`${u.id}/${up.n}: cost array length`);
       if (up.rep && !u.weapons.some(w => w.split('|')[0].trim() === up.rep)) problems.push(`${u.id}/${up.n}: replaces unknown ${up.rep}`);
       if (!up.w && !up.d) problems.push(`${u.id}/${up.n}: no weapon or description`);
-      (up.fx || []).forEach(f => [].concat(f.w || []).forEach(w => { if (!names.includes(w)) problems.push(`${u.id}/${up.n}: fx on unknown weapon ${w}`); }));
+      (up.fx || []).forEach(f => {
+        // an effect on a summoned unit must name one this unit summons, and that unit's weapon
+        if (f.unit && !(u.summons || []).includes(f.unit)) problems.push(`${u.id}/${up.n}: fx targets ${f.unit}, which it doesn't summon`);
+        const own = f.unit ? (E.units[f.unit] ? E.units[f.unit].weapons.map(s => s.split('|')[0].trim()) : []) : names;
+        [].concat(f.w || []).forEach(w => { if (!own.includes(w)) problems.push(`${u.id}/${up.n}: fx on unknown weapon ${w}`); });
+      });
     });
     (u.summons || []).forEach(id => { if (!E.units[id] || !E.units[id].summoned) problems.push(`${u.id}: summons unknown ${id}`); });
     u.tags.forEach(t => { if (!GAME.factions.some(f => f.race === u.race && f.tags.includes(t))) problems.push(`${u.id}: tag ${t} on no faction`); });
