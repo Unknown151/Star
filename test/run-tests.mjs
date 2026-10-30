@@ -313,7 +313,7 @@ test('NewRecruit export: Golden Armada', () => {
     'Artanis (270, 1S)',
     '',
     '',
-    'Created with Supply Line',
+    'Created with newrecruit.eu v37.7',   // the Tabletop Simulator importer needs this exact line
   ]);
 });
 test('NewRecruit export: duplicate cards and a Creep section', () => {

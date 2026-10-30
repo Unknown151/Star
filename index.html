@@ -1871,7 +1871,8 @@ const Engine = (() => {
         L.push(`${name} (${x.cost}, ${x.supply}S)${x.ups.length ? ': ' + x.ups.map(u => u.n).join(', ') : ''}`);
       });
     });
-    L.push('', '', 'Created with Supply Line');
+    // The Tabletop Simulator army importer rejects exports without NewRecruit's own footer line.
+    L.push('', '', 'Created with newrecruit.eu v37.7');
     return L.join('\n');
   }
 
