@@ -12,7 +12,7 @@ Open `index.html` in any browser. No install, no build step, works offline. List
 - **Build** — pick race, Faction card and scale; add units from the picker; tap sizes and upgrades on the row. ◆ marks a Specialist upgrade (one model).
 - **Cards** — the Faction, Tactical and Creep cards in play. Tap **Activate** when you exhaust one; **New round** readies them all and counts the Round.
 - **Supply** — pick a mission, see the Supply Pool per Round and plan which units arrive when (or hit Auto-fill).
-- **Roster** — copy as text, print, download `.txt` / `.json`, or copy a share link.
+- **Roster** — copy or download the list as text in **NewRecruit** layout (same as a newrecruit.eu text export) or Supply Line's own layout, print it, download `.json`, or copy a share link. **Lists → Import** also reads NewRecruit text exports.
 
 The validator checks Minerals and Gas, Army Slots per type, faction tags, legal squad sizes, Unique units and cards, exactly one Creep card for Zerg, one Nova per army, Specialist limits and conflicting weapon swaps.
 

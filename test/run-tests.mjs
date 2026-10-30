@@ -282,6 +282,94 @@ E.EXAMPLES.forEach((x, i) => {
     eq(b.units.map(u => [u.id, u.n, u.up]), a.units.map(u => [u.id, u.n, u.up]));
   });
 });
+// ── NewRecruit text format ──
+const armada = () => E.example(E.EXAMPLES.findIndex(x => x.name === 'The Golden Armada'));
+test('NewRecruit export: Golden Armada', () => {
+  eq(E.toNewRecruit(armada()).split('\n'), [
+    'The Golden Armada - Protoss (2000 Minerals, 200 Gas)',
+    '13 Supply, 0 CP',
+    '',
+    'Deployment Maps',
+    'Mission Card',
+    '',
+    '# Faction:',
+    'Khalai',
+    '',
+    '# Tactical:',
+    'Gateway', 'Observer', 'Robotics Facility', 'Templar Archives', 'Twilight Council', 'Warp Prism',
+    '',
+    '# Units:',
+    '4x Adepts (210, 1S): Resonating Glaives, Guidance, Glaive Strike',
+    '3x Zealots (200, 2S): My Life for Aiur, Leg Enhancements',
+    '3x Zealots (210, 2S): My Life for Aiur, Leg Enhancements, Zealous Round',
+    '',
+    'Immortal (300, 2S): Shield Overcharge',
+    '2x Stalkers (340, 2S): Path of Shadows, Fury of the Nerazim',
+    'Stalker (180, 1S): Path of Shadows',
+    '',
+    '2x High Templar (150, 1S): Psionic Storm',
+    '2x Sentries (140, 1S): Solid-Field Projectors',
+    '',
+    'Artanis (270, 1S)',
+    '',
+    '',
+    'Created with Supply Line',
+  ]);
+});
+test('NewRecruit export: duplicate cards and a Creep section', () => {
+  const t = E.toNewRecruit(list('zerg', 'ks', 'standard', [['zergling', 12]], ['creep-malignant', 'pool', 'pool']));
+  ok(t.includes('# Tactical:\n2x Spawning Pool\n\n# Creep:\nMalignant Creep\n'), t);
+});
+test('NewRecruit import: the real newrecruit.eu export of the Golden Armada', () => {
+  const pasted = `Protoss - Protoss (2000 Minerals, 200 Gas)
+13 Supply, 0 CP
+
+Deployment Maps
+Mission Card
+
+# Faction:
+Khalai
+
+# Tactical:
+Gateway
+Observer
+Robotics Facility
+Templar Archives
+Twilight Council
+Warp Prism
+
+# Units:
+4x Adepts (210, 1S): Guidance, Resonating Glaives, Glaive Strike
+3x Zealots (200, 2S): My Life for Aiur, Leg Enhancements
+3x Zealots (210, 2S): My Life for Aiur, Zealous Round, Leg Enhancements
+
+Immortal (300, 2S): Shield Overcharge
+2x Stalkers (340, 2S): Fury of the Nerazim, Path of Shadows
+Stalker (180, 1S): Path of Shadows
+
+High Templar (150, 1S): Psionic Storm
+2x Sentries (140, 1S): Solid-Field Projector
+
+Artanis (270, 1S)
+
+
+Created with newrecruit.eu v37.7`;
+  const l = E.fromText(pasted), ev = E.evaluate(l);
+  eq([l.name, l.race, l.faction, l.scale], ['Protoss', 'protoss', 'khalai', 'standard']);
+  eq(errs(ev), []);
+  eq([ev.minerals, ev.gas, ev.entries.length], [2000, 200, 9]);
+  eq(l.units.find(u => u.id === 'hightemplar').n, 2, 'High Templar size taken from its cost');
+  eq(l.units.find(u => u.id === 'sentry').up, ['Solid-Field Projectors'], 'singular name still matches');
+  const key = x => x.units.map(u => JSON.stringify([u.id, u.n, [...u.up].sort()])).sort();
+  eq(key(l), key(armada()), 'same units as the built-in Golden Armada');
+});
+E.EXAMPLES.forEach((x, i) => test(`NewRecruit round trip: ${x.name}`, () => {
+  const a = E.example(i), b = E.fromText(E.toNewRecruit(a));
+  const key = l => l.units.map(u => JSON.stringify([u.id, u.n, [...u.up].sort()])).sort();
+  eq([b.name, b.race, b.faction, b.scale, [...b.cards].sort()], [a.name, a.race, a.faction, a.scale, [...a.cards].sort()]);
+  eq(key(b), key(a));
+}));
+
 test('text import tolerates loose formatting', () => {
   const l = E.fromText(`Quick list\nRaynor's Raiders skirmish\n- 9x Marines\n  + combat shield, Bayonet\n- Jim Raynor\n- Barracks x2`);
   eq([l.race, l.faction, l.scale], ['terran', 'rr', 'skirmish']);

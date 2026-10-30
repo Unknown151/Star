@@ -1843,7 +1843,88 @@ const Engine = (() => {
     return L.join('\n');
   }
 
+  // ── NewRecruit-style text: same layout as a newrecruit.eu text export ──
+  // Units grouped Core → Elite → Support → Air → Hero, A–Z by unit within a group.
+  const NR_ORDER = ['core', 'elite', 'support', 'air', 'hero'];
+  function toNewRecruit(list) {
+    const ev = evaluate(list), L = [];
+    const xs = ev.entries.filter(x => x.def);
+    L.push(`${list.name || 'Untitled list'} - ${ev.race ? ev.race.name : '?'} (${ev.minerals} Minerals, ${ev.gas} Gas)`);
+    L.push(`${xs.reduce((a, x) => a + x.supply, 0)} Supply, 0 CP`, '', 'Deployment Maps', 'Mission Card', '');
+    L.push('# Faction:', ev.fac ? ev.fac.name : '', '');
+    const counted = kind => {
+      const cnt = {};
+      ev.cards.filter(c => (c.kind === 'creep') === (kind === 'creep')).forEach(c => { cnt[c.name] = (cnt[c.name] || 0) + 1; });
+      return Object.keys(cnt).sort((a, b) => a.localeCompare(b)).map(n => cnt[n] > 1 ? `${cnt[n]}x ${n}` : n);
+    };
+    const tactical = counted('tactical'), creep = counted('creep');
+    L.push('# Tactical:', ...tactical, '');
+    if (creep.length) L.push('# Creep:', ...creep, '');
+    L.push('# Units:');
+    const groups = NR_ORDER.map(t => xs.filter(x => x.def.slot === t)
+      .map((x, i) => ({ x, i })).sort((a, b) => a.x.def.name.localeCompare(b.x.def.name) || a.i - b.i).map(o => o.x))
+      .filter(g => g.length);
+    groups.forEach((g, gi) => {
+      if (gi) L.push('');
+      g.forEach(x => {
+        const name = x.models > 1 ? `${x.models}x ${x.def.plural || x.def.name + 's'}` : x.def.name;
+        L.push(`${name} (${x.cost}, ${x.supply}S)${x.ups.length ? ': ' + x.ups.map(u => u.n).join(', ') : ''}`);
+      });
+    });
+    L.push('', '', 'Created with Supply Line');
+    return L.join('\n');
+  }
+
+  // Reads a NewRecruit text export (or toNewRecruit output). Matches names loosely (singular/plural),
+  // and when the "Nx" count is missing, picks the squad size whose cost adds up to the listed cost.
+  function fromNewRecruit(text) {
+    const lines = String(text || '').split(/\r?\n/).map(l => l.trim());
+    const key = s => s.toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim();
+    const same = (a, b) => { a = key(a); b = key(b); return a === b || a.replace(/s$/, '') === b.replace(/s$/, ''); };
+    const head = lines.find(Boolean) || '';
+    const hm = head.match(/^(.*?)\s+-\s+(.*?)\s*\(\s*([\d,.]+)\s*Minerals?/i);
+    let race = hm ? Object.keys(GAME.races).find(r => key(hm[2]).includes(r)) : null;
+    const list = normalize({ name: hm ? hm[1] : head });
+    list.cards = [];
+    const minerals = hm ? parseInt(hm[3].replace(/[^\d]/g, ''), 10) : 0;
+    list.scale = minerals > 2000 ? 'grand' : minerals > 1000 ? 'standard' : 'skirmish';
+    if (list.scale === 'grand') list.limit = Math.ceil(minerals / 500) * 500;
+    let section = null, facLine = null;
+    const cardLines = [], unitLines = [];
+    lines.slice(1).forEach(line => {
+      const sec = line.match(/^#\s*([^:]+):?$/);
+      if (sec) { section = key(sec[1]); return; }
+      if (!line || /^created with/i.test(line)) return;
+      if (section === 'faction') facLine = facLine || line;
+      else if (section === 'units') unitLines.push(line);
+      else if (section) cardLines.push(line);
+    });
+    const fac = facLine && GAME.factions.find(f => (!race || f.race === race) && same(f.name, facLine));
+    if (fac) { race = fac.race; list.faction = fac.id; }
+    list.race = race || 'terran';
+    cardLines.forEach(line => {
+      const m = line.match(/^(?:(\d+)\s*x\s+)?(.+)$/i);
+      const c = GAME.cards.find(z => z.race === list.race && same(z.name, m[2]));
+      if (c) for (let i = 0; i < (Number(m[1]) || 1); i++) list.cards.push(c.id);
+    });
+    unitLines.forEach(line => {
+      const m = line.match(/^(?:(\d+)\s*x\s+)?(.+?)\s*\(\s*([\d,]+)\s*(?:,\s*\d+\s*S)?\s*\)\s*(?::\s*(.*))?$/i);
+      if (!m) return;
+      const def = GAME.units.find(u => !u.summoned && u.race === list.race && (same(u.name, m[2]) || same(u.plural || u.name + 's', m[2])));
+      if (!def) return;
+      const wanted = (m[4] || '').split(/\s*,\s*/).filter(Boolean);
+      const ups = wanted.map(n => (def.upgrades || []).find(u => same(u.n, n))).filter(Boolean);
+      const cost = parseInt(m[3].replace(/[^\d]/g, ''), 10);
+      const byCost = def.sizes.findIndex((s, i) => s[1] + ups.reduce((a, u) => a + upCost(u, i), 0) === cost);
+      const n = def.sizes.some(s => s[0] === Number(m[1])) ? Number(m[1]) : byCost >= 0 ? def.sizes[byCost][0] : def.sizes[0][0];
+      const e = addUnit(list, def.id, n);
+      e.up = ups.map(u => u.n);
+    });
+    return list;
+  }
+
   function fromText(text) {
+    if (/^#\s*Units:?\s*$/mi.test(String(text || ''))) return fromNewRecruit(text);
     const lines = String(text || '').split(/\r?\n/);
     const first = lines.find(l => l.trim());
     if (!first) throw new Error('Nothing to import.');
@@ -1959,7 +2040,7 @@ const Engine = (() => {
 
   return { SLOTS, SLOT_NAME, PHASES, timing, supplyProfile, cardsInPlay, units: U, factions: F, cards: C, fmt, weapon, upCost, entry, evaluate, effective, loadout, loadoutText,
     scaleInfo, missionValues, supplyPlan, autoPlan, newList, normalize, addUnit, toggleUpgrade, toText, fromText,
-    encodeShare, decodeShare, EXAMPLES, example, uid };
+    toNewRecruit, fromNewRecruit, encodeShare, decodeShare, EXAMPLES, example, uid };
 })();
 </script>
 
@@ -2282,14 +2363,19 @@ const Engine = (() => {
   }
 
   // ── roster tab ──
+  const ROSTER_FMT = { nr: { name: 'NewRecruit', fn: l => E.toNewRecruit(l) }, sl: { name: 'Supply Line', fn: l => E.toText(l) } };
+  const rosterFmt = () => ROSTER_FMT[store.rosterFmt] ? store.rosterFmt : 'nr';
+  const rosterText = l => ROSTER_FMT[rosterFmt()].fn(l);
   function renderRoster(l) {
-    return `<div class="btnrow">
+    const seg = Object.entries(ROSTER_FMT).map(([k, f]) => `<button data-act="roster-fmt" data-f="${k}" aria-pressed="${rosterFmt() === k}">${f.name}</button>`).join('');
+    return `<div class="setup" style="margin-bottom:10px"><div class="row"><span class="lbl">Text format</span><div class="seg">${seg}</div></div></div>
+    <div class="btnrow">
       <button class="btn primary" data-act="copytext">Copy text</button>
       <button class="btn" data-act="print">Print</button>
       <button class="btn" data-act="sharelink">Copy share link</button>
       <button class="btn" data-act="dl-txt">Download .txt</button>
       <button class="btn" data-act="dl-json">Download .json</button>
-    </div><pre class="roster">${esc(E.toText(l))}</pre>`;
+    </div><pre class="roster">${esc(rosterText(l))}</pre>`;
   }
 
   function printView(l, ev) {
@@ -2406,7 +2492,7 @@ const Engine = (() => {
 
   function importModal() {
     const head = `<div class="top"><h2>Import</h2><button class="btn" data-act="close">Close</button></div>`;
-    const body = `<p class="small muted">Paste a list exported from Supply Line — JSON, a backup file, a share link, or the plain-text roster.</p>
+    const body = `<p class="small muted">Paste a list — a NewRecruit text export, or anything exported from Supply Line (text roster, JSON, backup file or share link).</p>
       <textarea id="importText" rows="10" style="width:100%;font:13px ui-monospace,Consolas,monospace" placeholder="Paste here…"></textarea>
       <div class="btnrow" style="margin-top:8px"><button class="btn primary" data-act="do-import">Import</button>
       <label class="btn" style="cursor:pointer">Open file…<input type="file" id="importFile" accept=".json,.txt,application/json,text/plain" data-act="import-file" hidden></label></div>`;
@@ -2490,12 +2576,13 @@ const Engine = (() => {
     deploy: t => commit(l => { const r = Number(t.dataset.r); if (r) l.deploy[t.dataset.uid] = r; else delete l.deploy[t.dataset.uid]; }),
     autoplan: () => commit(l => { l.deploy = E.autoPlan(l); }),
     clearplan: () => commit(l => { l.deploy = {}; }),
-    copytext: () => copy(E.toText(cur())),
+    copytext: () => copy(rosterText(cur())),
+    'roster-fmt': t => { store.rosterFmt = t.dataset.f; persist(); render(); },
     sharelink: () => {
       const base = location.href.split('#')[0];
       copy(`${base}#l=${E.encodeShare(cur())}`);
     },
-    'dl-txt': () => download(`${fileSafe(cur().name)}.txt`, E.toText(cur())),
+    'dl-txt': () => download(`${fileSafe(cur().name)}${rosterFmt() === 'nr' ? '-newrecruit' : ''}.txt`, rosterText(cur())),
     'dl-json': () => download(`${fileSafe(cur().name)}.json`, JSON.stringify(cur(), null, 2), 'application/json'),
     'export-all': () => download(`supply-line-backup-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify({ app: 'supply-line', lists: store.lists }, null, 2), 'application/json'),
     print: () => { const l = cur(); $('#print').innerHTML = printView(l, E.evaluate(l)); window.print(); },
