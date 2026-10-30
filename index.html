@@ -1010,6 +1010,60 @@ const GAME = {
     { name:`Artefact Hunt`, std:[6,2,5,null], sk:[3,1,5,null], brief:`From Round 2 units claim markers and carry them home; scored at the end of Round 5.` },
     { name:`Fire in the Sky`, std:[5,3,5,10], sk:[3,2,5,8], brief:`From Round 2: VP equal to each held marker's Sabotage Level (1–3); Sabotage action changes levels.` },
   ],
+
+  // ─────────────────────────────── KEYWORDS ───────────────────────────────
+  // Short paraphrases shown when a keyword is hovered or tapped. p = Core Rules page.
+  // see = same explanation as another entry. pill = only explains the labels (ACTIVE, 1 CP…), not running text.
+  keywords: {
+    'ANTI-EVADE':        { p:82, d:`The target's Evade roll is worse by X (never pushed past 6+).` },
+    'BUFF':              { p:82, d:`Improves the named characteristic by X until End of Round — e.g. BUFF Speed (3) is +3″ Speed.` },
+    'DEBUFF':            { p:83, d:`Worsens the named characteristic by X until End of Round — e.g. DEBUFF Hit (1) means hit rolls need 1 more.` },
+    'DEBUFFS':           { see:'DEBUFF' },
+    'BULKY':             { p:82, d:`This weapon can't make a Ranged Attack while its unit is Engaged.` },
+    'BURROWED':          { p:82, d:`Status. The unit is also HIDDEN (regained each Round), counts as Size 0 and Supply 0 for Disengage, can't contest markers and may Evade every attack; other units can move through it. Any action except Hold ends it.` },
+    'BURROW':            { see:'BURROWED' },
+    'BURST FIRE':        { p:83, d:`BURST FIRE Y″ (X): each model firing at a target within Y″ rolls X extra attack dice.` },
+    'CONCENTRATED FIRE': { p:83, d:`The attack can remove at most X models; damage beyond that is discarded.` },
+    'CRITICAL HIT':      { p:83, d:`Move X dice from the Armour Pool straight to the Damage Pool, skipping the Armour roll. Applies per Batch, not to Spillover.` },
+    'DISPLACEMENT':      { p:83, d:`A Leading Model may end its move on this token or unit; it is then shuffled into base contact instead.` },
+    'DODGE':             { p:84, d:`Attacks against this unit move X fewer dice through Surge or CRITICAL HIT.` },
+    'HEAL':              { p:86, d:`Remove X damage from the unit's Damage Marker. Never brings back removed models.` },
+    'HIDDEN':            { p:86, d:`Status. Can't be targeted by Ranged Attacks or Line-of-Sight abilities from more than 4″ away, is immune to IMPACT and may Evade every attack. Detection removes it.` },
+    'HITS':              { p:86, d:`HITS X (Y): X automatic hits go straight into the Armour Pool, each with Damage Y and no Surge.` },
+    'IMPACT':            { p:86, d:`IMPACT (X) Y: after a successful Charge, each model in the Fighting or Supporting Rank rolls X dice; every Y+ is a hit (Damage 1, no Surge) into the Armour Pool.` },
+    'INDIRECT FIRE':     { p:86, d:`May target and damage units without Line of Sight (range still applies). A target out of sight may Evade.` },
+    'INSTANT':           { p:86, d:`Enemies can't use Reactions against attacks made with this weapon.` },
+    'LOCKED IN':         { p:87, d:`+X attack dice against a Stationary target.` },
+    'LONG RANGE':        { p:87, d:`The weapon's maximum range becomes X″. Models firing beyond the normal range get −1 to hit (roll them separately).` },
+    'MORPH':             { p:88, d:`Needs Available Supply: set the new model touching the unit, then remove X models. The new unit counts as Activated.` },
+    'NON-LETHAL DAMAGE': { p:88, d:`Add X to the Damage Marker without removing models — it counts once real damage arrives.` },
+    'PIERCE':            { p:88, d:`PIERCE [Tag] (X): against a target with that tag, the weapon's Damage becomes X.` },
+    'PINPOINT':          { p:88, d:`May shoot enemies that are Engaged — only in a fight its own unit is part of.` },
+    'PLACE':             { p:88, d:`Pick up the Leading Model and set it wholly within X″, then set the rest in Coherency. Ignores gaps and elevation. Can't end within 1″ of an enemy, except in the Assault Phase (the unit then becomes Engaged).` },
+    'PRECISION':         { p:88, d:`After rolling to hit, turn up to X misses into hits (they count for Surge too).` },
+    'REPEATABLE':        { p:88, d:`Not limited to once per Round. A Reaction still uses up your one Reaction for that activation.` },
+    'RESPAWN':           { p:89, d:`Return up to X destroyed models without raising the unit's Supply bracket; set them touching the unit, outside Engagement Range.` },
+    'SHIELDED':          { p:89, d:`The Shield value is added to the first model's HP. The status is lost when Total Damage exceeds the Shield or the first model dies; HEAL can't restore it.` },
+    'SIDEARM':           { p:89, d:`Fired in addition to the model's main weapon, as its own Batch — it may pick a different target.` },
+    'SIEGE MODE':        { p:89, d:`Status. The unit can't Move, Disengage, Run, Charge or Close Ranks and may only use Siege-Mode weapons. Lost when it returns to Reserves.` },
+    'SPECIALIST':        { p:89, d:`Only one model in the unit carries it. If that model dies, nobody else picks it up.` },
+    'SPILLOVER':         { p:89, d:`Template hits on units other than the main target: separate Batches, no attack-dice modifiers, no Surge.` },
+    'STATIONARY':        { p:90, d:`Every unit starts the Round Stationary and loses it once any of its models moves, is moved or is PLACEd.` },
+    'STAY IN PLAY':      { p:90, d:`Isn't removed during Cleanup & Refresh.` },
+    'SUMMON':            { p:90, d:`Set the new unit touching its parent. Needs Available Supply; not in Engagement Range or the enemy Zone of Influence; it can't activate in the Phase it arrives.` },
+    'TACTICAL MASS':     { p:90, d:`If the unit's Current Supply is higher than all engaged enemies combined, it ignores the Disengage penalty.` },
+    'TOUGH':             { p:90, d:`Turn up to X failed Armour results into successes.` },
+    'ZONE OF INFLUENCE': { p:91, d:`The 6″ strip in from a player's Entry Edge. Enemies arriving from Reserves can't end there.` },
+    'ON CREEP':          { p:88, d:`A Ground Zerg unit within 6″ of a Creep Tumor token or a Source of Creep model.` },
+    'ACTIVE':            { p:79, pill:1, d:`Used by the activated unit, right before or right after its action. Each named Active ability once per Round per unit.` },
+    'REACTION':          { p:80, pill:1, d:`Used when its trigger happens, even in the opponent's activation. Each player may use one Reaction per activation; each named Reaction once per Round per unit.` },
+    'PASSIVE':           { p:79, pill:1, d:`Always in effect. No cost.` },
+    'ONCE PER GAME':     { pill:1, d:`Can be used only once in the whole game.` },
+    'ONCE PER ROUND':    { pill:1, d:`Can be used only once each Round.` },
+    'CP':                { p:81, pill:1, d:`Command Points (Terran). Exhaust Faction or Tactical cards to generate them; pay the cost in full — anything left over is lost.` },
+    'BM':                { p:81, pill:1, d:`Biomass (Zerg). Exhaust Faction or Tactical cards to generate it; pay the cost in full — anything left over is lost.` },
+    'PE':                { p:81, pill:1, d:`Psionic Energy (Protoss). Exhaust Faction or Tactical cards to generate it; pay the cost in full — anything left over is lost.` },
+  },
 };
 </script>
 <!-- ═══════════════════════════ END OF GAME DATA ═══════════════════════════ -->
@@ -1314,6 +1368,16 @@ pre.roster{white-space:pre-wrap;background:var(--field);border:1px solid var(--l
 .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--panel);color:var(--hi);border:1px solid var(--accent);box-shadow:0 0 16px var(--glow);padding:8px 16px;border-radius:2px;font-weight:600;font-size:14px;z-index:60;opacity:0;transition:opacity .2s;pointer-events:none;max-width:90vw;text-align:center;text-shadow:var(--tglow)}
 .toast.show{opacity:1}
 
+/* keyword popups */
+.kwt{border-bottom:1px dotted currentColor;cursor:help}
+.kwt:hover,.kwt:focus-visible{color:var(--hi);border-bottom-style:solid;outline:none}
+.pill[data-kw]{cursor:help}
+#kwtip{position:fixed;z-index:80;max-width:min(320px,calc(100vw - 16px));padding:8px 11px;background:var(--panel);color:var(--text);border:1px solid var(--accent);border-radius:3px;box-shadow:0 6px 24px rgba(0,0,0,.5),0 0 12px var(--glow);font-size:13.5px;line-height:1.45;pointer-events:none}
+#kwtip[hidden]{display:none}
+#kwtip b{color:var(--hi);text-transform:uppercase;letter-spacing:.04em;margin-right:6px}
+#kwtip small{color:var(--muted);font-size:11px}
+#kwtip div{margin-top:3px}
+
 footer{max-width:820px;margin:0 auto;padding:18px 12px 40px;color:var(--faint);font-size:12.5px;border-top:1px solid var(--line)}
 footer p{margin:4px 0}
 
@@ -1465,6 +1529,7 @@ footer p{margin:4px 0}
 </footer>
 <div id="modal"></div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div id="kwtip" role="tooltip" hidden></div>
 <div id="print"></div>
 
 <script id="engine">
@@ -2206,14 +2271,46 @@ const Engine = (() => {
   // Effective datasheet: stats with numeric upgrades applied, weapons, abilities, loadout.
   // ── card-style datasheet: stat tiles, Models / Supply boxes, abilities and weapons grouped by phase ──
   const PHASE_LABEL = { Any: 'Any phase', Movement: 'Movement phase', Assault: 'Assault phase', Combat: 'Combat phase', Scoring: 'Scoring phase' };
+  // ── keyword popups: hover on PC, tap on phones ──
+  const KW = GAME.keywords || {};
+  const kwEntry = k => { const e = KW[k]; return e && e.see ? [e.see, KW[e.see]] : [k, e]; };
+  const KW_RE = new RegExp(`\\b(${Object.keys(KW).filter(k => !KW[k].pill).sort((a, b) => b.length - a.length).join('|')})\\b`, 'g');
+  const kwAttr = k => KW[k] ? ` data-kw="${k}" tabindex="0"` : '';
+  // Escapes text and turns every glossary keyword in it into a hover / tap target.
+  function kwify(text) {
+    text = String(text == null ? '' : text);
+    let out = '', last = 0;
+    text.replace(KW_RE, (m, k, i) => {
+      out += `${esc(text.slice(last, i))}<span class="kwt"${kwAttr(k)}>${esc(m)}</span>`;
+      last = i + m.length;
+      return m;
+    });
+    return out + esc(text.slice(last));
+  }
+  let tipFor = null, tapWasOpen = false;
+  function showTip(el) {
+    const [name, e] = kwEntry(el.dataset.kw), t = $('#kwtip');
+    if (!e) return;
+    t.innerHTML = `<b>${esc(name)}</b>${e.p ? `<small>Core Rules p. ${e.p}</small>` : ''}<div>${esc(e.d)}</div>`;
+    t.hidden = false; tipFor = el;
+    const r = el.getBoundingClientRect(), w = t.offsetWidth, h = t.offsetHeight;
+    t.style.left = `${Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8)}px`;
+    t.style.top = `${Math.max(8, r.bottom + h + 14 > window.innerHeight ? r.top - h - 6 : r.bottom + 6)}px`;
+  }
+  function hideTip() { const t = $('#kwtip'); if (t) t.hidden = true; tipFor = null; }
+
   function abilityHtml(a) {
-    return `<p class="ab"><b>${esc(a.n)}:</b> <span class="pill k-${a.kind.toLowerCase()}">${a.kind}</span>${a.cost ? `<span class="pill cst">${esc(a.cost)}</span>` : ''}${a.extra.map(x => `<span class="pill x">${esc(x)}</span>`).join('')}${a.upg ? '<span class="pill upg">Upgrade</span>' : ''} ${esc(a.d)}${a.note ? `<span class="abn">⚑ ${esc(a.note)}</span>` : ''}</p>`;
+    const pills = `<span class="pill k-${a.kind.toLowerCase()}"${kwAttr(a.kind.toUpperCase())}>${a.kind}</span>`
+      + (a.cost ? `<span class="pill cst"${kwAttr(a.cost.split(' ').pop())}>${esc(a.cost)}</span>` : '')
+      + a.extra.map(x => `<span class="pill x"${kwAttr(x.toUpperCase())}>${esc(x)}</span>`).join('')
+      + (a.upg ? '<span class="pill upg">Upgrade</span>' : '');
+    return `<p class="ab"><b>${esc(a.n)}:</b> ${pills} ${kwify(a.d)}${a.note ? `<span class="abn">⚑ ${esc(a.note)}</span>` : ''}</p>`;
   }
   function weaponsTable(ws) {
     if (!ws.length) return '';
     const row = w => {
       const set = k => (w.setBy || []).includes(k) ? ' class="mod"' : '';
-      const kws = w.kw.map(k => (w.newKw || []).includes(k) ? `<span class="mod">${esc(k)}</span>` : esc(k)).join(', ');
+      const kws = w.kw.map(k => (w.newKw || []).includes(k) ? `<span class="mod">${kwify(k)}</span>` : kwify(k)).join(', ');
       const src = w.spec ? `Specialist upgrade · 1 model${w.replaces ? `, instead of ${w.replaces}` : ', extra weapon'}`
         : w.replaced ? `Upgrade · replaces ${w.replaced}` : w.src ? 'Upgrade · extra weapon' : '';
       return `<tr><td${w.src ? ' class="mod"' : ''}>${esc(w.name)}${src ? `<span class="wsrc">${esc(src)}</span>` : ''}</td>
@@ -2281,13 +2378,13 @@ const Engine = (() => {
         <span class="gas">${c.gas * n}</span>
         ${c.unique ? `<button class="btn small danger" data-act="card-remove" data-id="${c.id}" aria-label="Remove ${esc(c.name)}">✕</button>`
           : `<span class="step"><button data-act="card-dec" data-id="${c.id}" aria-label="One fewer">−</button><span>${n}</span><button data-act="card-inc" data-id="${c.id}" aria-label="One more">+</button></span>`}
-        ${open ? `<div class="cabl">${c.abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${esc(a[2])}</div>`).join('')}${c.note ? `<div>${esc(c.note)}</div>` : ''}</div>` : ''}
+        ${open ? `<div class="cabl">${c.abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${kwify(a[2])}</div>`).join('')}${c.note ? `<div>${esc(c.note)}</div>` : ''}</div>` : ''}
       </div>`;
     }).join('');
     return `<section class="card" id="cards">
       <h3>Cards <span class="r">Gas ${fmt(ev.gas)} / ${fmt(ev.scale.gasLimit)} · ${ev.res} ${ev.race ? ev.race.res : ''}</span></h3>
       ${fac ? `<div class="crow"><span class="nm" data-act="card-toggle" data-id="fac:${fac.id}">${esc(fac.name)} <small class="muted">Faction card</small><br><small class="muted">${slotChips(fac.slots)} · ${fac.res} ${ev.race.res}</small></span><span class="gas">0</span>
-        ${ui.openCards.has('fac:' + fac.id) ? `<div class="cabl">${fac.abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${esc(a[2])}</div>`).join('')}</div>` : ''}</div>` : ''}
+        ${ui.openCards.has('fac:' + fac.id) ? `<div class="cabl">${fac.abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${kwify(a[2])}</div>`).join('')}</div>` : ''}</div>` : ''}
       ${creepRow}${rows}
       ${unknownCards.map(id => `<div class="crow"><span class="nm" style="color:var(--bad)">Unknown card “${esc(id)}”</span><button class="btn small danger" data-act="card-remove" data-id="${esc(id)}">✕</button></div>`).join('')}
       <button class="add" style="margin-top:8px" data-act="cardpicker">+ Add tactical card</button>
@@ -2471,7 +2568,7 @@ const Engine = (() => {
           <small>${slotChips(c.slots)} · ${c.res ? `${c.res} ${ev.race.res}` : `<span style="color:var(--warn)">no ${ev.race.res}</span>`}</small></span>
         <button class="chip size" data-act="add-card" data-id="${c.id}" ${why && c.unique && l.cards.includes(c.id) ? 'disabled' : ''}><b>${c.gas}</b> <small>Gas${c.gas > gasLeft ? ' · over' : ''}</small></button></div>
         ${why ? `<div class="why">${esc(why)}</div>` : ''}
-        ${peek ? `<div class="cabl" style="margin-top:6px">${c.abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${esc(a[2])}</div>`).join('')}${c.note ? `<div>${esc(c.note)}</div>` : ''}</div>` : ''}
+        ${peek ? `<div class="cabl" style="margin-top:6px">${c.abilities.map(a => `<div><b>${esc(a[0])}</b> <small>${esc(a[1])}</small> — ${kwify(a[2])}</div>`).join('')}${c.note ? `<div>${esc(c.note)}</div>` : ''}</div>` : ''}
       </div>`;
     };
     const head = `<div class="top"><h2>Add tactical card</h2><span class="small muted">Gas ${fmt(ev.gas)} / ${fmt(ev.scale.gasLimit)}</span><button class="btn primary" data-act="close">Done</button></div>
@@ -2528,6 +2625,7 @@ const Engine = (() => {
 
   // ── render ──
   function render() {
+    hideTip();
     const l = cur(), ev = E.evaluate(l);
     document.documentElement.dataset.race = l.race;
     const nm = $('#listName'); if (document.activeElement !== nm) nm.value = l.name;
@@ -2617,7 +2715,17 @@ const Engine = (() => {
     rename: t => commit(l => { l.name = t.value.trim() || 'Untitled list'; }),
     'import-file': t => { const f = t.files && t.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => importText(r.result); r.readAsText(f); },
   };
+  // Keywords: a mouse shows the popup on hover; a tap (or click) toggles it; Tab focus shows it too.
+  document.addEventListener('pointerdown', e => { const k = e.target.closest('[data-kw]'); tapWasOpen = !!k && k === tipFor; }, true);
+  document.addEventListener('pointerover', e => { if (e.pointerType !== 'mouse') return; const k = e.target.closest('[data-kw]'); if (k && k !== tipFor) showTip(k); });
+  document.addEventListener('pointerout', e => { if (e.pointerType === 'mouse' && tipFor && e.target.closest('[data-kw]') === tipFor && !tipFor.contains(e.relatedTarget)) hideTip(); });
+  document.addEventListener('focusin', e => { const k = e.target.closest && e.target.closest('[data-kw]'); if (k) showTip(k); });
+  document.addEventListener('focusout', e => { if (e.target === tipFor) hideTip(); });
+  window.addEventListener('scroll', () => { if (tipFor) hideTip(); }, { passive: true });
   document.addEventListener('click', e => {
+    const kw = e.target.closest('[data-kw]');
+    if (kw) { if (tapWasOpen && e.pointerType !== 'mouse') hideTip(); else showTip(kw); return; }
+    if (tipFor) hideTip();
     const t = e.target.closest('[data-act]');
     if (!t || !A[t.dataset.act] || t.tagName === 'SELECT' || t.tagName === 'INPUT') return;
     A[t.dataset.act](t, e);
@@ -2629,6 +2737,7 @@ const Engine = (() => {
     if (t.dataset.act === 'rename') { cur().name = t.value; persist(); }
   });
   document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && tipFor) { hideTip(); return; }
     if (e.key === 'Escape' && ui.modal) { ui.modal = null; render(); }
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('header[data-act="toggle"],header[data-act="army-toggle"]')) { e.preventDefault(); A[e.target.dataset.act](e.target); }
     if (e.key === 'Enter' && e.target.id === 'listName') e.target.blur();

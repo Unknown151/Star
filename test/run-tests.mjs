@@ -499,6 +499,31 @@ test('data: weapons, sizes, upgrades and references are well-formed', () => {
   GAME.cards.forEach(c => Object.keys(c.slots).forEach(t => { if (!E.SLOTS.includes(t)) problems.push(`${c.id}: bad slot ${t}`); }));
   eq(problems, []);
 });
+test('data: keyword glossary entries are complete', () => {
+  const bad = Object.entries(GAME.keywords).filter(([, e]) => e.see ? !GAME.keywords[e.see] || GAME.keywords[e.see].see : !e.d).map(([k]) => k);
+  eq(bad, []);
+});
+test('data: every uppercase keyword in abilities and weapons has a glossary entry', () => {
+  const KW = GAME.keywords;
+  const re = new RegExp(`\\b(${Object.keys(KW).filter(k => !KW[k].pill).sort((a, b) => b.length - a.length).join('|')})\\b`, 'g');
+  const texts = [];
+  GAME.units.forEach(u => {
+    (u.abilities || []).forEach(a => texts.push(a[2]));
+    (u.upgrades || []).forEach(x => { if (x.d) texts.push(x.d); if (x.w) texts.push(x.w.split('|')[8]); });
+    u.weapons.forEach(w => texts.push(w.split('|')[8]));
+  });
+  [...GAME.factions, ...GAME.cards].forEach(c => c.abilities.forEach(a => texts.push(a[2])));
+  const left = new Set();
+  texts.forEach(t => (String(t).replace(re, ' ').match(/\b[A-Z][A-Z-]{2,}(?: [A-Z][A-Z-]{2,})*\b/g) || []).forEach(m => left.add(m)));
+  eq([...left], []);
+});
+test('data: every ability label (kind, cost, once per…) has an explanation', () => {
+  const missing = new Set();
+  const check = t => { const x = E.timing(t); [x.kind.toUpperCase(), x.cost && x.cost.split(' ').pop(), ...x.extra.map(s => s.toUpperCase())].filter(Boolean).forEach(k => { if (!GAME.keywords[k]) missing.add(k); }); };
+  GAME.units.forEach(u => { (u.abilities || []).forEach(a => check(a[1])); (u.upgrades || []).filter(x => x.t).forEach(x => check(x.t)); });
+  [...GAME.factions, ...GAME.cards].forEach(c => c.abilities.forEach(a => check(a[1])));
+  eq([...missing], []);
+});
 test('data: unit count matches the reference (44 incl. summoned)', () => {
   // README counts 15 Terran, 17 Zerg (16 + Zagara listed), 13 Protoss = 45 names incl. summoned
   eq(GAME.units.filter(u => u.race === 'terran').length, 15);
