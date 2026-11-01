@@ -339,7 +339,7 @@ REFERENCE.forEach(x => {
 const armada = () => ref('The Golden Armada');
 test('NewRecruit export: Golden Armada', () => {
   eq(E.toNewRecruit(armada()).split('\n'), [
-    'The Golden Armada - Protoss (2000 Minerals, 200 Gas)',
+    'Protoss - The Golden Armada (2000 Minerals, 200 Gas)',   // NewRecruit's order: Race - List name
     '13 Supply, 0 CP',
     '',
     'Deployment Maps',
@@ -500,6 +500,56 @@ test('Tabletop Simulator importer accepts duplicate cards, Nova and Zerg creep',
   eq(ttsCheck(E.toNewRecruit(list('terran', 'nco', 'standard', [['nova-assault', 1], ['siegetank', 1, ['Mode Transformation']]], ['factory', 'factory', 'supplydepot']))), []);
   eq(ttsCheck(E.toNewRecruit(list('zerg', 'ks', 'standard', [['zergling', 12]], ['creep-malignant', 'pool', 'pool']))), []);
   ok(ttsCheck('X - Terran (1 Minerals, 0 Gas)\n# Tactical:\n2x Factory\n# Units:\nMarine (1, 1S)\nCreated with newrecruit.eu').some(p => /card quantity/.test(p)), 'the check itself catches "2x" cards');
+});
+test('NewRecruit import: v37.8 export — headings without #, Creep card and Omega Worm under Units', () => {
+  const l = E.fromText(`Zerg - Zerg 2K (2000 Minerals, 205 Gas)
+13 Supply, 0 CP
+
+Deployment Maps
+Mission Card
+
+Faction:
+Kerrigan's Swarm
+
+Tactical:
+Cocoon
+Evolution Chamber
+Hydralisk Den
+Overseer
+Roach Warren
+Spawning Pool
+Spawning Pool (Six Pool)
+
+Units:
+Reactive Creep
+
+2x Ravagers (310, 2S): Potent Bile
+Roaches (200, 1S): Roach, Tunneling Claws, Glial Reconstitution, Hydriodic Bile
+18x Zerglings (240, 2S): Adrenal Glands, Shredding Claws
+
+4x Hydralisks (330, 3S): Ancillary Carapace, Lurking, Grooved Spines
+6x Kerrigan Swarm Raptors (Zergling) (230, 1S)
+18x Raptors (Zergling) (290, 2S): Adrenal Glands, Shredding Claws
+
+Queen (150, 1S): Domineering Presence
+
+Kerrigan (250, 1S)
+
+Omega Worm
+
+
+Created with newrecruit.eu v37.8`);
+  eq([l.name, l.race, l.faction, l.scale], ['Zerg 2K', 'zerg', 'ks', 'standard']);
+  eq([...l.cards].sort(), ['cocoon', 'creep-reactive', 'evo', 'hydraden', 'overseer', 'pool', 'sixpool', 'warren']);
+  eq(l.units.map(u => [u.id, u.n]), [['ravager', 2], ['roach', 3], ['zergling', 18], ['hydralisk', 4], ['ksraptor', 6], ['raptor', 18], ['queen', 1], ['kerrigan', 1]]);
+  const ev = E.evaluate(l);
+  eq([ev.minerals, ev.gas, E.toNewRecruit(l).split('\n')[1]], [2000, 205, '13 Supply, 0 CP'], 'same totals as NewRecruit');
+  eq(errs(ev).map(m => m.replace(/ — .*/, '')), ['5 Gas over the 200 limit (Gas is 10% of the Mineral limit).',
+    "Reactive Creep needs the Zagara's Swarm faction card.", '1 Elite slot short']);
+});
+test('NewRecruit import: older exports with "List name - Race" still read', () => {
+  const l = E.fromText('Siege Line - Terran (280 Minerals, 0 Gas)\n\n# Faction:\nTerran Armed Forces\n\n# Units:\nSiege Tank (280, 2S): Mode Transformation, Coordinated Strike, Shaped Blast, Smart Shells\n\n\nCreated with newrecruit.eu v37.7');
+  eq([l.name, l.race, l.units.map(u => u.id)], ['Siege Line', 'terran', ['siegetank']]);
 });
 test('NewRecruit import: Nova written as "Nova: <mode>"', () => {
   const l = E.fromText('Terran - Terran (500 Minerals, 0 Gas)\n\n# Faction:\nNova Covert Ops\n\n# Tactical:\nSupply Depot\nSupply Depot\n\n# Units:\nNova (260, 1S): Assault Mode\n\n\nCreated with newrecruit.eu v37.7');

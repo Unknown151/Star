@@ -1921,7 +1921,7 @@ const Engine = (() => {
   function toNewRecruit(list) {
     const ev = evaluate(list), L = [];
     const xs = ev.entries.filter(x => x.def);
-    L.push(`${list.name || 'Untitled list'} - ${ev.race ? ev.race.name : '?'} (${ev.minerals} Minerals, ${ev.gas} Gas)`);
+    L.push(`${ev.race ? ev.race.name : '?'} - ${list.name || 'Untitled list'} (${ev.minerals} Minerals, ${ev.gas} Gas)`);
     L.push(`${xs.reduce((a, x) => a + x.supply, 0)} Supply, 0 CP`, '', 'Deployment Maps', 'Mission Card', '');
     L.push('# Faction:', ev.fac ? ev.fac.name : '', '');
     // One line per copy: the Tabletop Simulator importer rejects "2x" on card lines.
@@ -1956,22 +1956,33 @@ const Engine = (() => {
     const key = s => s.toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim();
     const same = (a, b) => { a = key(a); b = key(b); return a === b || a.replace(/s$/, '') === b.replace(/s$/, ''); };
     const head = lines.find(Boolean) || '';
+    // NewRecruit's title is "Race - List name (…)" ("Zerg - Zerg 2K"); older Supply Line exports wrote "List name - Race"
     const hm = head.match(/^(.*?)\s+-\s+(.*?)\s*\(\s*([\d,.]+)\s*Minerals?/i);
-    let race = hm ? Object.keys(GAME.races).find(r => key(hm[2]).includes(r)) : null;
-    const list = normalize({ name: hm ? hm[1] : head });
+    const raceNamed = s => Object.keys(GAME.races).find(r => key(s) === r);
+    let race = null, name = head;
+    if (hm) {
+      if (raceNamed(hm[1])) { race = raceNamed(hm[1]); name = hm[2]; }
+      else if (raceNamed(hm[2])) { race = raceNamed(hm[2]); name = hm[1]; }
+      else { race = Object.keys(GAME.races).find(r => key(hm[1] + ' ' + hm[2]).includes(r)) || null; name = hm[2]; }
+    }
+    const list = normalize({ name });
     list.cards = [];
     const minerals = hm ? parseInt(hm[3].replace(/[^\d]/g, ''), 10) : 0;
     list.scale = minerals > 2000 ? 'grand' : minerals > 1000 ? 'standard' : 'skirmish';
     if (list.scale === 'grand') list.limit = Math.ceil(minerals / 500) * 500;
+    // Headings may come with or without "#" ("# Units:" / "Units:"); setup sections are skipped.
+    const HEADINGS = ['faction', 'factions', 'tactical', 'tactics', 'tactical cards', 'creep', 'units',
+      'pre-game', 'deployment maps', 'deployments', 'deployment', 'mission card', 'mission cards', 'missions', 'mission'];
+    const CARD_SECTIONS = ['tactical', 'tactics', 'tactical cards', 'creep'];
     let section = null, facLine = null;
     const cardLines = [], unitLines = [];
     lines.slice(1).forEach(line => {
-      const sec = line.match(/^#\s*([^:]+):?$/);
-      if (sec) { section = key(sec[1]); return; }
+      const sec = line.match(/^(#*)\s*([^:#]+?)\s*:?$/);
+      if (sec && (sec[1] || HEADINGS.includes(key(sec[2])))) { section = key(sec[2]); return; }
       if (!line || /^created with/i.test(line)) return;
-      if (section === 'faction') facLine = facLine || line;
+      if (section === 'faction' || section === 'factions') facLine = facLine || line;
       else if (section === 'units') unitLines.push(line);
-      else if (section) cardLines.push(line);
+      else if (CARD_SECTIONS.includes(section)) cardLines.push(line);
     });
     const fac = facLine && GAME.factions.find(f => (!race || f.race === race) && same(f.name, facLine));
     if (fac) { race = fac.race; list.faction = fac.id; }
@@ -1983,7 +1994,12 @@ const Engine = (() => {
     });
     unitLines.forEach(line => {
       const m = line.match(/^(?:(\d+)\s*x\s+)?(.+?)\s*\(\s*([\d,]+)\s*(?:,\s*\d+\s*S)?\s*\)\s*(?::\s*(.*))?$/i);
-      if (!m) return;
+      if (!m) {
+        // NewRecruit also lists the Creep card (and summoned units like the Omega Worm) under Units, without a cost
+        const c = GAME.cards.find(z => z.race === list.race && same(z.name, line));
+        if (c) list.cards.push(c.id);
+        return;
+      }
       const wanted = (m[4] || '').split(/\s*,\s*/).filter(Boolean);
       // try the name as written ("Nova (Stealth Mode)"), then without a variant's base ("… Raptors (Zergling)");
       // NewRecruit's "Nova: Stealth Mode" picks the profile by its option
@@ -2002,7 +2018,7 @@ const Engine = (() => {
   }
 
   function fromText(text) {
-    if (/^#\s*Units:?\s*$/mi.test(String(text || ''))) return fromNewRecruit(text);
+    if (/^#*\s*Units:?\s*$/mi.test(String(text || '')) || /created with newrecruit/i.test(String(text || ''))) return fromNewRecruit(text);
     const lines = String(text || '').split(/\r?\n/);
     const first = lines.find(l => l.trim());
     if (!first) throw new Error('Nothing to import.');
